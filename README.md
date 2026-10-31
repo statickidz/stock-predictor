@@ -84,7 +84,6 @@ BROWSER_CHANNEL=msedge uses installed Edge; SMOKE_WEBGPU=1 checks GPU parity. Th
 - scripts/export_browser.py: pinned model export and parity fixtures.
 - .github/workflows/pages.yml: build, refresh and deployment.
 - vendor/kronos: unchanged upstream architecture and MIT license.
-- poc/browser: historical standalone Mini proof of concept.
 - Other Python modules/tests retain the original backend and supply catalog/calendar/market tooling. They are absent from the Pages runtime.
 
 See [deployment](docs/deployment.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md) and [verification](docs/verification.md). Built on [Kronos](https://github.com/shiyu-coder/Kronos) and ONNX Runtime Web. Application code is MIT licensed; models, data and dependencies retain their respective terms.

@@ -1,4 +1,4 @@
-"""Export Kronos Mini for the isolated browser spike; never changes vendored code."""
+"""Export pinned Kronos models for browser inference and validate ONNX parity."""
 import argparse
 import json
 import sys
@@ -100,10 +100,11 @@ class Stage2(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "poc/browser/models")
+    parser.add_argument("--output", type=Path, help="Default: .cache/browser-models/<model>")
     parser.add_argument("--symbol", help="Also prepare real market input (e.g. NVDA)")
     parser.add_argument("--model", choices=PROFILES, default="mini")
     args = parser.parse_args()
+    args.output = args.output or ROOT / ".cache/browser-models" / args.model
     torch.set_num_threads(4)
     torch.manual_seed(42)
     cache = str(ROOT / ".cache/huggingface")
