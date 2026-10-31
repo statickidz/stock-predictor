@@ -25,7 +25,7 @@ export function createChart(svg, wrapper, tooltip) {
     const forecast = result?.forecast || [];
     points = [...observed.map(point => ({...point, predicted: false})), ...forecast.map(point => ({...point, predicted: true}))];
     const width = wrapper.clientWidth, height = wrapper.clientHeight;
-    const left = width < 450 ? 12 : 19, right = width - (width < 450 ? 59 : 67), top = 32, bottom = height - 37;
+    const left = width < 450 ? 12 : 19, right = width - (width < 450 ? 59 : 67), top = 32, bottom = height - Math.max(72, height * .23) - 50;
     const futureCount = forecast.length || 10;
     const total = observed.length + futureCount;
     const prices = points.map(point => point.close);
@@ -36,7 +36,7 @@ export function createChart(svg, wrapper, tooltip) {
     const y = (price) => bottom - (price - low) / (high - low) * (bottom - top);
     layout = {x, left, right, width, total};
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.setAttribute('aria-label', `${history.asset.name} historical daily closing prices through ${history.as_of}${result ? ` and ${forecast.length} projected closing prices through ${forecast.at(-1).date}` : '. Generate a forecast to add projected prices.'}`);
+    svg.setAttribute('aria-label', `${history.asset.name} historical daily closing prices and volume through ${history.as_of}${result ? ` and ${forecast.length} projected closing prices and volumes through ${forecast.at(-1).date}` : '. Generate a forecast to add projected prices.'}`);
     const cutoff = x(observed.length - 1);
     svg.append(element('rect', {x:cutoff, y:top-18, width:right-cutoff, height:bottom-top+18, class:'forecast-ground'}));
     for (let index=0; index<5; index++) {
@@ -54,6 +54,16 @@ export function createChart(svg, wrapper, tooltip) {
       svg.append(element('path', {d:path([finalObserved,...forecast],observed.length-1),class:'forecast-line'}));
       svg.append(element('circle',{cx:x(points.length-1),cy:y(points.at(-1).close),r:3.2,fill:'#bf5a35',stroke:'#fff','stroke-width':1.5}));
     }
+    const volumeBase = height - 37, volumeTop = bottom + 28;
+    const maxVolume = Math.max(1, ...points.map(point => point.volume || 0));
+    const compact = new Intl.NumberFormat('en-US', {notation:'compact', maximumFractionDigits:1});
+    svg.append(element('text', {x:left,y:volumeTop-8,class:'chart-axis'}, 'Volume'));
+    svg.append(element('text', {x:right+9,y:volumeTop+3,class:'chart-axis'}, compact.format(maxVolume)));
+    const barWidth = Math.max(.5, Math.min(10,(right-left)/(total-1)*.65));
+    points.forEach((point,index)=>{
+      const barHeight=(point.volume || 0)/maxVolume*(volumeBase-volumeTop);
+      svg.append(element('rect',{x:x(index)-barWidth/2,y:volumeBase-barHeight,width:barWidth,height:barHeight,class:point.predicted?'volume-bar projected':'volume-bar'}));
+    });
     const ticks = width < 450 ? 3 : 5;
     for (let index=0; index<ticks; index++) {
       const pointIndex = Math.round(index/(ticks-1)*(observed.length-1));
@@ -66,7 +76,7 @@ export function createChart(svg, wrapper, tooltip) {
     if (!points.length) return;
     cursor = Math.max(0, Math.min(points.length-1,index));
     const point = points[cursor];
-    tooltip.textContent = `${shortDate(point.date)} · ${point.predicted ? 'Projected close' : 'Historical close'}\n$${number.format(point.close)}`;
+    tooltip.textContent = `${shortDate(point.date)} · ${point.predicted ? 'Projected close' : 'Historical close'}\nUSD ${number.format(point.close)}\n${point.predicted ? 'Projected volume' : 'Volume'} · ${number.format(point.volume ?? 0)}`;
     tooltip.hidden = false;
   }
   wrapper.addEventListener('pointermove', event => {

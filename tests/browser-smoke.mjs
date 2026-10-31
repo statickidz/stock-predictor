@@ -36,11 +36,11 @@ try {
   const workerUrl = await page.locator('meta[name="inference-worker"]').getAttribute('content');
   assert.ok(new URL(workerUrl, base).pathname.startsWith(new URL(base).pathname), 'Worker must use the deployment base');
 
-  await page.selectOption('#runtime-select','wasm');
+  await page.click('[popovertarget="preferences-menu"]');await page.selectOption('#runtime-select','wasm');await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
   await page.reload();await loading;
-  await page.click('.local-data summary');await page.click('#clear-cache');
+  if(!await page.locator('.local-data').evaluate(e=>e.open))await page.click('.local-data summary');await page.click('#clear-cache');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
   await page.reload();await loading;
@@ -87,7 +87,7 @@ try {
   await page.selectOption('#model-select','small');
   assert.equal(await page.locator('#generate-button').isDisabled(),false);
   assert.equal(await page.locator('#forecast-results').isVisible(),false);
-  await page.click('.local-data summary');
+  if(!await page.locator('.local-data').evaluate(e=>e.open))await page.click('.local-data summary');
   await page.click('#clear-cache');
   await page.waitForFunction(()=>document.querySelector('#job-status').textContent.includes('cache cleared'));
   assert.match(await page.locator('#job-status').innerText(),/cache cleared/);

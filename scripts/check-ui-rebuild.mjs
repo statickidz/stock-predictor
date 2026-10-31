@@ -10,7 +10,7 @@ await page.goto(process.env.SMOKE_URL || 'http://127.0.0.1:4321');await page.loc
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`overflow ${width}`);
 await page.fill('#asset-search','Microsoft');await page.getByRole('button',{name:/MSFT/}).click();
 await page.click('[data-horizon="20"]');assert.equal(await page.locator('[data-horizon="20"]').getAttribute('aria-pressed'),'true');
-await page.selectOption('#model-select','small');await page.selectOption('#runtime-select','wasm');await page.click('.local-data summary');
+await page.selectOption('#model-select','small');await page.click('[popovertarget="preferences-menu"]');await page.selectOption('#runtime-select','wasm');await page.keyboard.press('Escape');await page.click('.local-data summary');
 assert.equal(await page.locator('#import-history').isVisible(),true);
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`expanded overflow ${width}`);
 await page.click('.local-data summary');await page.fill('#asset-search','');

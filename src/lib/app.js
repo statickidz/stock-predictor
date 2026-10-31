@@ -104,7 +104,7 @@ async function selectAsset(asset) {
   const generation=state.begin();selected=asset;savePreferences();history=null;clearError();clearForecast();drawAssets();
   $('asset-name').replaceChildren(document.createTextNode(asset.name+' '));
   const symbol=document.createElement('span');symbol.id='asset-symbol';symbol.textContent=asset.symbol;$('asset-name').append(symbol);
-  $('asset-mark').textContent=asset.symbol.slice(0,1);$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
+  $('asset-mark').textContent=asset.symbol;$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
   $('last-price').textContent='—';$('daily-change').textContent='';$('price-caption').textContent='Loading completed daily candles…';
   $('horizon-help').textContent=asset.kind==='stock'?'Trading days · skips weekends & holidays':'Calendar days · crypto trades every day';
   chartMessage('Loading daily price history',`Loading the published snapshot for ${asset.symbol}.`,true);
@@ -122,7 +122,7 @@ function showResult(data) {
   for (const point of data.forecast) {
     const row=document.createElement('tr');
     const change=(point.close/data.last_close-1)*100;
-    for (const [index,value] of [date(point.date),money(point.close),percent(change)].entries()) {const cell=document.createElement('td');cell.textContent=value;if(index===2)cell.className=change>=0?'positive':'negative';row.append(cell);}
+    for (const [index,value] of [date(point.date),money(point.close),percent(change),new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(point.volume)].entries()) {const cell=document.createElement('td');cell.textContent=value;if(index===2)cell.className=change>=0?'positive':'negative';row.append(cell);}
     $('forecast-rows').append(row);
   }
   const generated=new Date(data.generated_at).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
@@ -143,7 +143,7 @@ async function generate() {
     const data=await inference.predict(input,requestedModel,$('runtime-select').value,message=>state.commit(generation,()=>{$('job-status').textContent=message;}));
     state.commit(generation,()=>{
       const last=snapshot.candles.at(-1).close;
-      showResult({asset:snapshot.asset,history:snapshot,horizon,forecast:data.closes.map((close,i)=>({date:input.future_dates[i],close})),last_close:last,projected_close:data.closes.at(-1),change_pct:(data.closes.at(-1)/last-1)*100,
+      showResult({asset:snapshot.asset,history:snapshot,horizon,forecast:data.closes.map((close,i)=>({date:input.future_dates[i],close,volume:data.volumes[i]})),last_close:last,projected_close:data.closes.at(-1),change_pct:(data.closes.at(-1)/last-1)*100,
         generated_at:new Date().toISOString(),elapsed_seconds:(data.loadMs+data.inferenceMs)/1000,
         model:{...requestedModel,id:requestedModel.model_id,context:Math.min(256,snapshot.candles.length),samples:3,device:`browser ${data.provider}`}});
       $('cancel-button').hidden=true;
@@ -185,7 +185,7 @@ $('import-history').addEventListener('change',async event=>{
   try {
     if(file.size>2_000_000)throw new Error('Choose a JSON file smaller than 2 MB.');
     const data=importedHistory(JSON.parse(await file.text()));
-    state.commit(generation,()=>{history=data;selected=data.asset;market=selected.kind;drawAssets();for(const kind of ['stock','crypto'])$(`filter-${kind}`).setAttribute('aria-pressed',String(kind===market));$('asset-name').textContent=data.asset.name+' · IMPORT';$('asset-exchange').textContent='Local JSON · USD';$('asset-mark').textContent='I';$('horizon-help').textContent='Uses future dates supplied in your JSON file';showHistory();});
+    state.commit(generation,()=>{history=data;selected=data.asset;market=selected.kind;drawAssets();for(const kind of ['stock','crypto'])$(`filter-${kind}`).setAttribute('aria-pressed',String(kind===market));$('asset-name').textContent=data.asset.name+' · IMPORT';$('asset-exchange').textContent='Local JSON · USD';$('asset-mark').textContent=data.asset.symbol;$('horizon-help').textContent='Uses future dates supplied in your JSON file';showHistory();});
   }catch(error){state.commit(generation,()=>{if(!history&&selected)selectAsset(selected);showError('Unable to import history',error,null);});}
   event.target.value='';
 });

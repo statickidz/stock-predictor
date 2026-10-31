@@ -56,7 +56,7 @@ Approved visual direction: a restrained financial workspace for inspecting daily
 - A single system sans family, tabular price numerals, clear labels and fixed type sizes. No display typography or decorative animation.
 - Observed prices use a solid muted green line; projections use a dashed orange line with a dated divider. Never imply a calibrated confidence interval.
 - Forms use native buttons and inputs, visible focus, accessible names, 16px mobile inputs and 44px-class mobile touch targets.
-- Above 900px, the desktop shell fills the window beneath a 60px header. A 320px right sidebar keeps its run action visible while settings scroll independently. The analysis column scrolls for results and expanded explanations. Below 901px, sections stack in normal document flow.
+- Above 900px, the desktop shell fills the window beneath a 64px header. A 320px right sidebar keeps its run action visible while settings scroll independently. The analysis column scrolls for results and expanded explanations. Below 901px, sections stack in normal document flow.
 - Status, errors, provenance and dates are functional content. Real history loads first; forecast remains empty until genuine inference succeeds.
 
 ## Colors
@@ -69,7 +69,7 @@ One sans family carries headings and controls. Prices use tabular numerals. The 
 
 ## Layout
 
-The right sidebar separates its heading, scrollable settings, and persistent execution area. Asset browsing is bounded to 108px on desktop. Storage uses a native disclosure; CPU/GPU selection lives in the navbar. The chart flexes to available height with a 180px minimum drawing area; the analysis column scrolls when the window is too short. Desktop page insets are 28px; phones use 16px. The sidebar uses the olive-neutral control surface.
+The right sidebar separates its heading, scrollable settings, and persistent execution area. Asset browsing is bounded to 108px on desktop. Storage uses a native disclosure; CPU/GPU selection lives in the navbar Preferences popover. The chart flexes to available height with a 240px minimum drawing area; the analysis column scrolls when the window is too short. Desktop page insets are 28px; phones use 16px. The sidebar uses the olive-neutral control surface.
 
 ## Elevation & Depth
 
@@ -95,10 +95,16 @@ Model selection uses a native select with the existing white control surface, fi
 
 ## System appearance and remembered settings
 
-System light/dark preference controls appearance through `prefers-color-scheme`, including native controls, chart strokes, tooltips and browser theme color. Dark tokens use canvas `#171b19`, surface `#202622`, ink `#e8ece7`, muted `#aeb9ad`, line `#39423a` and focus/link accent `#ed9976`. The primary action retains orange `#b74629` with white text. The navbar offers System, Light and Dark; an explicit choice is saved under `stock-predictor.theme`, applied in the document head before paint, and overrides system appearance. System remains the default.
+System light/dark preference controls appearance through `prefers-color-scheme`, including native controls, chart strokes, tooltips and browser theme color. Dark tokens use neutral charcoal canvas `#111214`, surface `#1b1d21`, ink `#eeeef0`, muted `#a8abb3`, line `#32343a` and focus/link accent `#9bb9ff`. Dark primary actions use blue `#426bdb` with white text. The navbar offers System, Light and Dark; an explicit choice is saved under `stock-predictor.theme`, applied in the document head before paint, and overrides system appearance. System remains the default.
 
 Browser localStorage key `stock-predictor.preferences.v1` remembers the market, published asset symbol, horizon, model, runtime, chart range and expanded disclosures. Startup validates choices against allowed values and available catalog entries; unsupported WebGPU falls back to CPU. Malformed or blocked storage does not prevent use. Imported files and generated forecasts are not stored as preferences.
 
 ## Application navbar and help
 
-The navbar links to the project repository (`statickidz/stock-predictor`), with About and How it works buttons opening native modal dialogs. Native focus containment, Escape dismissal, explicit Close buttons and focus restoration preserve keyboard access. The uncertainty explanation and research disclaimer live in these dialogs; the analysis canvas holds only chart and results. Appearance and CPU/GPU selectors remain available in the navbar at every width. Mobile wraps navigation into two rows. CPU remains the default and GPU is disabled when WebGPU is unavailable. User-selected runtime is remembered.
+The navbar links to the project repository (`statickidz/stock-predictor`), with About and How it works actions in the Help popover opening native modal dialogs. Native focus containment, Escape dismissal, explicit Close buttons and focus restoration preserve keyboard access. The uncertainty explanation and research disclaimer live in these dialogs; the analysis canvas holds only chart and results. Appearance and CPU/GPU selectors remain available through Preferences at every width. Navigation stays in one row, with icon buttons on phones. CPU remains the default and GPU is disabled when WebGPU is unavailable. User-selected runtime is remembered.
+
+## Refined navigation and volume
+
+The 64px app bar places Help, Preferences and project GitHub beside the wordmark. Labels become accessible icon buttons on phones. Native popovers hold help actions and appearance/compute selectors; Escape and outside click dismiss them. Help opens native dialogs and focus returns to the visible Help button. There is no automatic entrance motion. Hover is pointer-gated; press feedback is subtle and reduced-motion disables transitions.
+
+The asset badge displays the complete symbol, including crypto suffixes. A shared-date volume pane sits below prices: filled observed bars and outlined projected bars, with exact values in keyboard/pointer tooltips and the results table/CSV. Volume is the averaged decoder volume channel, separately denormalized; physically invalid negative estimates are clamped to zero and non-finite output is rejected. Volume uses the units supplied by the source snapshot. These estimates are not calibrated intervals.

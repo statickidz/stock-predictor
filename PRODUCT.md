@@ -10,7 +10,7 @@ People exploring daily stock, ETF and cryptocurrency research forecasts on their
 
 ## Capabilities and constraints
 
-The curated catalog includes 80 US equities,20 ETFs and30 USD crypto pairs. Daily snapshots,5/10/20-session horizons, price chart and CSV. Actual model inference only; no accuracy claims or calibrated confidence intervals.
+The curated catalog includes 80 US equities,20 ETFs and30 USD crypto pairs. Daily snapshots,5/10/20-session horizons, price and volume chart and CSV. Actual model inference only; no accuracy claims or calibrated confidence intervals.
 
 Kronos Mini (default), Small and Base execute in browser workers with matching tokenizers. One model's sessions remain loaded at a time. Runtime choice offers single-threaded WebAssembly or supported WebGPU. Selection changes cancel running forecasts; stale results cannot update the chart.
 

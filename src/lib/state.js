@@ -13,8 +13,8 @@ export function createSelectionState() {
 
 export function toCsv(result) {
   const quote = (value) => `"${String(value).replaceAll('"', '""')}"`;
-  return 'symbol,date,projected_close,currency,model\r\n' + result.forecast.map((point) =>
-    [result.asset.symbol, point.date, point.close, result.asset.currency, result.model.id].map(quote).join(',') + '\r\n'
+  return 'symbol,date,projected_close,currency,model,projected_volume\r\n' + result.forecast.map((point) =>
+    [result.asset.symbol, point.date, point.close, result.asset.currency, result.model.id, point.volume ?? ''].map(quote).join(',') + '\r\n'
   ).join('');
 }
 

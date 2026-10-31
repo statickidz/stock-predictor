@@ -5,15 +5,19 @@ themeSelect.addEventListener('change', () => {
   document.getElementById('dark-styles').media = theme === 'dark' ? 'all' : theme === 'light' ? 'not all' : '(prefers-color-scheme: dark)';
   document.documentElement.dataset.appearance = theme;
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-    const dark = meta.content === '#171b19';
+    const dark = meta.content === '#111214';
     meta.media = theme === 'system' ? (dark ? '(prefers-color-scheme: dark)' : '(prefers-color-scheme: light)') : ((theme === 'dark') === dark ? 'all' : 'not all');
   }
   try { localStorage.setItem('stock-predictor.theme', theme); } catch {}
 });
 for (const trigger of document.querySelectorAll('[data-dialog]')) {
-  trigger.addEventListener('click', () => document.getElementById(trigger.dataset.dialog).showModal());
+  trigger.addEventListener('click', () => {
+    trigger.closest('[popover]')?.hidePopover();
+    document.getElementById(trigger.dataset.dialog).showModal();
+  });
 }
 for (const dialog of document.querySelectorAll('.info-dialog')) {
+  dialog.addEventListener('close', () => document.querySelector('[popovertarget="help-menu"]').focus());
   dialog.querySelector('[data-close-dialog]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', event => {
     const box = dialog.getBoundingClientRect();
