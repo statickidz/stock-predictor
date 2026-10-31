@@ -1,33 +1,7 @@
-<section class="methodology" id="methodology" aria-labelledby="method-heading">
-  <details>
-    <summary
-      ><div>
-        <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"
-          ><circle
-            cx="12"
-            cy="12"
-            r="9"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"></circle><path
-            d="M12 11v6m0-10v1"
-            stroke="currentColor"
-            stroke-width="1.5"></path></svg
-        ><h2 id="method-heading">A model, not a crystal ball.</h2>
-      </div><span
-        >How this works <svg
-          width="16"
-          height="16"
-          viewBox="0 0 20 20"
-          aria-hidden="true"
-          ><path
-            d="m5 8 5 5 5-5"
-            stroke="currentColor"
-            fill="none"
-            stroke-width="1.5"></path></svg
-        ></span
-      ></summary
-    ><div class="method-columns">
+<dialog id="how-dialog" class="info-dialog" aria-labelledby="how-title">
+  <div class="dialog-heading"><h2 id="how-title">How it works</h2><button type="button" data-close-dialog aria-label="Close How it works">Close</button></div>
+  <p class="dialog-intro">A model, not a crystal ball.</p>
+  <div class="method-columns">
       <div>
         <h3>Start with the market</h3><p>
           Daily snapshots are refreshed when this site is built. They contain
@@ -48,14 +22,14 @@
         </p>
       </div>
     </div>
-  </details>
-</section>
-<footer>
-  <span
-    >Built on <a
-      href="https://github.com/shiyu-coder/Kronos"
-      target="_blank"
-      rel="noopener noreferrer">Kronos</a
-    >. Made for exploration.</span
-  ><span>For research only. Not financial advice.</span>
-</footer>
+  <p class="dialog-note">For research only. Not financial advice.</p>
+</dialog>
+<dialog id="about-dialog" class="info-dialog" aria-labelledby="about-title">
+  <div class="dialog-heading"><h2 id="about-title">About Stock Predictor</h2><button type="button" data-close-dialog aria-label="Close About">Close</button></div>
+  <p class="dialog-intro">A workspace for exploring daily market forecasts.</p>
+  <p>Explore stocks, ETFs and cryptocurrency using Kronos models that run on your device. Published snapshots load first; forecasts are generated when you request them.</p>
+  <p>Your selections are remembered in this browser. Imported history stays on your device.</p>
+  <p>CPU is the default. GPU uses WebGPU where supported; if a forecast fails, switch to CPU and try again. Larger models need more memory.</p>
+  <a href="https://github.com/statickidz/stock-predictor" target="_blank" rel="noopener noreferrer">View the project on GitHub</a>
+  <p class="dialog-note">For research only. Not financial advice.</p>
+</dialog>

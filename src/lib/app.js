@@ -1,3 +1,5 @@
+import './navigation.js';
+import {readPreferences, writePreferences} from './preferences.js';
 import { createSelectionState, toCsv } from './state.js';
 import { createChart } from './chart.js';
 import {staticJson, forecastInput, importedHistory} from './data.js';
@@ -11,6 +13,16 @@ const date = (value) => new Date(value+'T00:00:00Z').toLocaleDateString('en-US',
 const state = createSelectionState();
 const chart = createChart($('price-chart'),$('chart-wrap'),$('chart-tooltip'));
 let assets=[], models=[], modelKey=null, selected=null, market='stock', horizon=10, range=3, history=null, result=null, busy=false, retryAction=null;
+let preferenceStorage;
+try { preferenceStorage=window.localStorage; } catch { /* Storage may be blocked. */ }
+const preferences=readPreferences(preferenceStorage);
+horizon=preferences.horizon ?? horizon; range=preferences.range ?? range; modelKey=preferences.model ?? modelKey;
+let preferencesReady=false;
+function savePreferences() {
+  if(!preferencesReady)return;
+  writePreferences(preferenceStorage, {market,symbol:selected?.symbol,horizon,range,model:modelKey,runtime:$('runtime-select').value,
+    disclosures:Object.fromEntries([...document.querySelectorAll('details')].map((item,index)=>[String(index),item.open]))});
+}
 const inference = new BrowserInference();
 // Expose the actual Vite-emitted worker for artifact parity verification.
 document.querySelector('meta[name="inference-worker"]').content = inferenceWorkerUrl;
@@ -89,7 +101,7 @@ function showHistory() {
   $('chart-message').hidden=true;chart.update(history,result,range);updateButton();
 }
 async function selectAsset(asset) {
-  const generation=state.begin();selected=asset;history=null;clearError();clearForecast();drawAssets();
+  const generation=state.begin();selected=asset;savePreferences();history=null;clearError();clearForecast();drawAssets();
   $('asset-name').replaceChildren(document.createTextNode(asset.name+' '));
   const symbol=document.createElement('span');symbol.id='asset-symbol';symbol.textContent=asset.symbol;$('asset-name').append(symbol);
   $('asset-mark').textContent=asset.symbol.slice(0,1);$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
@@ -146,9 +158,11 @@ async function initialize() {
     $('stock-count').textContent=assets.filter(asset=>asset.kind==='stock').length;
     $('crypto-count').textContent=assets.filter(asset=>asset.kind==='crypto').length;
     drawModels(modelData.default);
-    const initial=selected || assets.find(asset=>asset.symbol==='AAPL' && asset.available) || assets.find(asset=>asset.available);
+    const initial=selected || assets.find(asset=>asset.symbol===preferences.symbol && asset.available && asset.kind===preferences.market)
+      || assets.find(asset=>asset.kind===preferences.market && asset.available) || assets.find(asset=>asset.symbol==='AAPL' && asset.available) || assets.find(asset=>asset.available);
     market=initial.kind;
     for(const kind of ['stock','crypto']){$(`filter-${kind}`).disabled=!assets.some(asset=>asset.kind===kind);$(`filter-${kind}`).setAttribute('aria-pressed',String(kind===market));}
+    preferencesReady=true;
     await selectAsset(initial);
   } catch(error) {
     $('connection-dot').classList.remove('connected');
@@ -156,13 +170,13 @@ async function initialize() {
   }
 }
 $('asset-search').addEventListener('input',drawAssets);
-for(const kind of ['stock','crypto']) $(`filter-${kind}`).addEventListener('click',()=>{market=kind;$('asset-search').value='';for(const option of ['stock','crypto'])$(`filter-${option}`).setAttribute('aria-pressed',String(option===kind));drawAssets();if(selected?.kind!==kind && assets.length)selectAsset(assets.find(asset=>asset.kind===kind));});
-document.querySelectorAll('[data-horizon]').forEach(button=>button.addEventListener('click',()=>{horizon=Number(button.dataset.horizon);state.begin();clearError();clearForecast();document.querySelectorAll('[data-horizon]').forEach(option=>option.setAttribute('aria-pressed',String(option===button)));if(!history && selected)selectAsset(selected);}));
-document.querySelectorAll('[data-range]').forEach(button=>button.addEventListener('click',()=>{range=Number(button.dataset.range);document.querySelectorAll('[data-range]').forEach(option=>option.setAttribute('aria-pressed',String(option===button)));chart.update(history,result,range);}));
+for(const kind of ['stock','crypto']) $(`filter-${kind}`).addEventListener('click',()=>{market=kind;$('asset-search').value='';for(const option of ['stock','crypto'])$(`filter-${option}`).setAttribute('aria-pressed',String(option===kind));drawAssets();if(selected?.kind!==kind && assets.length)selectAsset(assets.find(asset=>asset.kind===kind && asset.available!==false));});
+document.querySelectorAll('[data-horizon]').forEach(button=>button.addEventListener('click',()=>{horizon=Number(button.dataset.horizon);savePreferences();state.begin();clearError();clearForecast();document.querySelectorAll('[data-horizon]').forEach(option=>option.setAttribute('aria-pressed',String(option===button)));if(!history && selected)selectAsset(selected);}));
+document.querySelectorAll('[data-range]').forEach(button=>button.addEventListener('click',()=>{range=Number(button.dataset.range);savePreferences();document.querySelectorAll('[data-range]').forEach(option=>option.setAttribute('aria-pressed',String(option===button)));chart.update(history,result,range);}));
 $('generate-button').addEventListener('click',generate);
-$('model-select').addEventListener('change',()=>{modelKey=$('model-select').value;state.begin();clearError();clearForecast();updateModelHelp();if(!history && selected)selectAsset(selected);});
+$('model-select').addEventListener('change',()=>{modelKey=$('model-select').value;savePreferences();state.begin();clearError();clearForecast();updateModelHelp();if(!history && selected)selectAsset(selected);});
 $('retry-button').addEventListener('click',()=>retryAction?.());
-$('runtime-select').addEventListener('change',()=>{state.begin();inference.cancel();clearForecast();if(!history&&selected)selectAsset(selected);});
+$('runtime-select').addEventListener('change',()=>{savePreferences();state.begin();inference.cancel();clearForecast();if(!history&&selected)selectAsset(selected);});
 $('cancel-button').addEventListener('click',()=>{state.begin();inference.cancel();clearForecast();$('job-status').textContent='Forecast cancelled.';});
 $('clear-cache').addEventListener('click',async()=>{state.begin();inference.cancel();clearForecast();if(!history&&selected)selectAsset(selected);try{await caches.delete(cacheName);$('job-status').textContent='Downloaded model cache cleared.';}catch{$('job-status').textContent='Browser storage is unavailable. Models run without a persistent cache.';}});
 $('import-history').addEventListener('change',async event=>{
@@ -177,4 +191,11 @@ $('import-history').addEventListener('change',async event=>{
 });
 if(!navigator.gpu)$('runtime-select').querySelector('[value="webgpu"]').disabled=true;
 $('download-csv').addEventListener('click',()=>{if(!result)return;const url=URL.createObjectURL(new Blob([toCsv(result)],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`stock-predictor-${result.asset.symbol}-${result.model.key}-${result.history.as_of}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+$('runtime-select').value=preferences.runtime==='webgpu' && navigator.gpu ? 'webgpu' : 'wasm';
+document.querySelectorAll('[data-horizon]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.horizon)===horizon)));
+document.querySelectorAll('[data-range]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.range)===range)));
+document.querySelectorAll('details').forEach((item,index)=>{
+  item.open=preferences.disclosures?.[String(index)]===true;
+  item.addEventListener('toggle',savePreferences);
+});
 initialize();

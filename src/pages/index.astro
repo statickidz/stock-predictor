@@ -12,11 +12,13 @@ import Methodology from '../components/Methodology.astro';
   <main id="workspace">
     <div class="page-heading"><div><h1>Explore what’s next.</h1><p>A little more perspective on the markets. Powered by Kronos.</p></div><span class="workspace-label"><span class="tiny-line"></span> Daily price forecasts</span></div>
     <div class="workspace-grid">
-      <ChartWorkspace />
       <ForecastControls />
+      <div class="analysis-workspace">
+        <ChartWorkspace />
+        <ForecastResults />
+        <Methodology />
+      </div>
     </div>
-    <ForecastResults />
-    <Methodology />
   </main>
 </AppLayout>
 <script>

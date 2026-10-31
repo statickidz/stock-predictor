@@ -35,6 +35,7 @@ try {
   await page.waitForFunction(() => document.querySelector('meta[name="inference-worker"]')?.content);
   const workerUrl = await page.locator('meta[name="inference-worker"]').getAttribute('content');
   assert.ok(new URL(workerUrl, base).pathname.startsWith(new URL(base).pathname), 'Worker must use the deployment base');
+
   await page.selectOption('#runtime-select','wasm');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));

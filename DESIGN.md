@@ -14,7 +14,7 @@ colors:
 typography:
   headline:
     fontFamily: 'Inter, "Segoe UI", Arial, sans-serif'
-    fontSize: "34px"
+    fontSize: "28px"
     fontWeight: 550
     lineHeight: 1.2
     letterSpacing: "-1.1px"
@@ -50,26 +50,26 @@ components:
 
 **Creative North Star: "A precise financial workspace"**
 
-Approved visual direction: a restrained financial workspace for inspecting daily prices and model forecasts. Mode: Operate. One screen; chart first on desktop, inputs first on mobile.
+Approved visual direction: a restrained financial workspace for inspecting daily prices and model forecasts. Mode: Operate. A viewport-height desktop workspace with the chart on the left and forecast sidebar on the right. Narrow screens stack controls above analysis.
 
-- Warm white canvas `#f8f7f4`, white chart surface, quiet olive-neutral control panel `#f0f0e9`, charcoal `#262b29`, orange primary action `#b74629`.
+- Warm white canvas `#f8f7f4`, white chart surface, white forecast composer with neutral segmented controls, charcoal `#262b29`, orange primary action `#b74629`.
 - A single system sans family, tabular price numerals, clear labels and fixed type sizes. No display typography or decorative animation.
 - Observed prices use a solid muted green line; projections use a dashed orange line with a dated divider. Never imply a calibrated confidence interval.
 - Forms use native buttons and inputs, visible focus, accessible names, 16px mobile inputs and 44px-class mobile touch targets.
-- Maximum desktop canvas 1450px, chart plus compact 304px form. At 780px, stack the form above the chart. Results table and explanations follow.
+- Above 900px, the desktop shell fills the window beneath a 60px header. A 320px right sidebar keeps its run action visible while settings scroll independently. The analysis column scrolls for results and expanded explanations. Below 901px, sections stack in normal document flow.
 - Status, errors, provenance and dates are functional content. Real history loads first; forecast remains empty until genuine inference succeeds.
 
 ## Colors
 
-The frontmatter records the shipped palette. Muted text is `#62695f`; secondary text on the form uses `#5c6753`. Accent marks actions, observed prices are solid green, and projected prices are dashed orange. Color does not imply model confidence.
+The frontmatter records the shipped palette. Muted text is `#62695f`; secondary text on the form uses `#5c6753`. The composer surface is white, search uses the canvas tone, and selected assets use `#edf0e8`. Accent marks actions, observed prices are solid green, and projected prices are dashed orange. Color does not imply model confidence.
 
 ## Typography
 
-One sans family carries headings and controls. Prices use tabular numerals. The headline reduces to 29px at the mobile breakpoint. Mobile search inputs use 16px.
+One sans family carries headings and controls. Prices use tabular numerals. The headline uses 28px on desktop and 26px below 600px. Mobile search inputs use 16px.
 
 ## Layout
 
-The desktop chart and 304px form share a 22px gap. At 1100px the form becomes 280px; at 780px it stacks above the chart. At 420px insets reduce. Above 1500px the chart grows taller. Mobile chart range controls occupy their own row beneath the quote.
+The right sidebar separates its heading, scrollable settings, and persistent execution area. Asset browsing is bounded to 108px on desktop. Storage uses a native disclosure; CPU/GPU selection lives in the navbar. The chart flexes to available height with a 180px minimum drawing area; the analysis column scrolls when the window is too short. Desktop page insets are 28px; phones use 16px. The sidebar uses the olive-neutral control surface.
 
 ## Elevation & Depth
 
@@ -92,3 +92,13 @@ Model selection uses a native select with the existing white control surface, fi
 - Do preserve keyboard focus and mobile touch targets.
 - Don't label daily closes as live quotes.
 - Don't present an estimated path as a calibrated confidence interval.
+
+## System appearance and remembered settings
+
+System light/dark preference controls appearance through `prefers-color-scheme`, including native controls, chart strokes, tooltips and browser theme color. Dark tokens use canvas `#171b19`, surface `#202622`, ink `#e8ece7`, muted `#aeb9ad`, line `#39423a` and focus/link accent `#ed9976`. The primary action retains orange `#b74629` with white text. The navbar offers System, Light and Dark; an explicit choice is saved under `stock-predictor.theme`, applied in the document head before paint, and overrides system appearance. System remains the default.
+
+Browser localStorage key `stock-predictor.preferences.v1` remembers the market, published asset symbol, horizon, model, runtime, chart range and expanded disclosures. Startup validates choices against allowed values and available catalog entries; unsupported WebGPU falls back to CPU. Malformed or blocked storage does not prevent use. Imported files and generated forecasts are not stored as preferences.
+
+## Application navbar and help
+
+The navbar links to the project repository (`statickidz/stock-predictor`), with About and How it works buttons opening native modal dialogs. Native focus containment, Escape dismissal, explicit Close buttons and focus restoration preserve keyboard access. The uncertainty explanation and research disclaimer live in these dialogs; the analysis canvas holds only chart and results. Appearance and CPU/GPU selectors remain available in the navbar at every width. Mobile wraps navigation into two rows. CPU remains the default and GPU is disabled when WebGPU is unavailable. User-selected runtime is remembered.
