@@ -1,14 +1,16 @@
 <aside class="forecast-panel" aria-labelledby="forecast-heading">
-  <h2 id="forecast-heading">Build a forecast</h2><p class="panel-intro">
-    Pick a market. Look a little ahead.
-  </p>
+  <div class="sidebar-heading"><h2 id="forecast-heading">Build a forecast</h2>
+  </div>
+  <div class="sidebar-scroll">
+  <div class="composer-grid">
+  <div class="asset-picker">
   <div class="market-switch" role="group" aria-label="Asset market">
     <button id="filter-stock" type="button" aria-pressed="true"
       >Stocks &amp; ETFs <span id="stock-count">—</span></button
     ><button id="filter-crypto" type="button" aria-pressed="false"
       >Crypto <span id="crypto-count">—</span></button>
   </div>
-  <label for="asset-search" class="field-label">Asset</label><div
+  <label for="asset-search" class="field-label">Search assets</label><div
     class="search-field"
   >
     <svg width="17" height="17" viewBox="0 0 20 20" aria-hidden="true"
@@ -25,7 +27,7 @@
     ><input
       id="asset-search"
       type="search"
-      placeholder="Search name or symbol"
+      placeholder="e.g. Apple or AAPL"
       autocomplete="off"
       spellcheck="false"
     />
@@ -33,8 +35,10 @@
   <div id="asset-list" class="asset-list" aria-label="Supported assets">
     <p class="muted">Loading assets…</p>
   </div>
-  <fieldset class="horizon-field">
-    <legend class="field-label">Forecast horizon</legend><div
+  </div>
+  <div class="forecast-settings">
+  <div class="horizon-field" role="group" aria-labelledby="horizon-label" aria-describedby="horizon-help"><div class="horizon-row">
+    <span class="field-label" id="horizon-label">Forecast horizon</span><div
       class="horizon-options"
     >
       <button type="button" data-horizon="5" aria-pressed="false">5 days</button
@@ -42,23 +46,29 @@
         >10 days</button
       ><button type="button" data-horizon="20" aria-pressed="false"
         >20 days</button>
-    </div><p id="horizon-help">Trading days · skips weekends & holidays</p>
-  </fieldset>
+    </div></div><p id="horizon-help">Trading days only; skips weekends and holidays.</p>
+  </div>
   <div class="model-field">
-    <label for="model-select" class="field-label">Model</label><select
+    <label for="model-select" class="field-label">Forecast model</label><select
       id="model-select"
       aria-describedby="model-help"
       disabled><option>Loading models…</option></select
-    ><p id="model-help">Choose which Kronos model generates your forecast.</p>
+    ><p id="model-help">Select the Kronos model to generate prices and volume.</p>
   </div>
-  <div class="model-field">
-    <label for="runtime-select" class="field-label">Run on this device</label
-    ><select id="runtime-select"
-      ><option value="wasm">WebAssembly · CPU</option><option value="webgpu"
-        >WebGPU · GPU</option
-      ></select
-    ><p>Larger models need more memory. Try Mini first on phones.</p>
   </div>
+  </div>
+  <div class="compute-field">
+    <label for="runtime-select" class="field-label">Run forecast on</label>
+    <select id="runtime-select" aria-describedby="runtime-help"><option value="wasm">WebAssembly · CPU</option><option value="webgpu">WebGPU · GPU</option></select>
+    <p id="runtime-help">WebAssembly runs on your CPU.</p>
+  </div>
+  <div id="error-panel" class="error-panel" role="alert" hidden>
+    <strong id="error-title">Unable to load data</strong><p id="error-message">
+    </p><button id="retry-button" class="text-button" type="button"
+      >Try again <span aria-hidden="true">↗</span></button>
+  </div>
+  </div>
+  <div class="forecast-run">
   <button
     id="generate-button"
     class="primary-button generate"
@@ -79,22 +89,9 @@
   <button id="cancel-button" class="secondary-button" type="button" hidden
     >Cancel forecast</button
   >
+  <div class="connection sidebar-connection"><span class="status-dot" id="connection-dot"></span><span id="connection-label">Loading forecast options…</span></div>
   <div id="job-status" class="job-status" role="status" aria-live="polite">
-    Models run in your browser. The first forecast downloads model files.
+    Saved models are reused.
   </div>
-  <details class="local-data">
-    <summary>Local data &amp; storage</summary><label
-      for="import-history"
-      class="field-label">Import history JSON</label
-    ><input id="import-history" type="file" accept=".json,application/json" /><p
-    >
-      64+ OHLCV candles and 20 future session dates. Files stay on this device.
-    </p><button id="clear-cache" class="text-button" type="button"
-      >Clear downloaded models</button>
-  </details>
-  <div id="error-panel" class="error-panel" role="alert" hidden>
-    <strong id="error-title">Unable to load data</strong><p id="error-message">
-    </p><button id="retry-button" class="text-button" type="button"
-      >Try again <span aria-hidden="true">↗</span></button>
   </div>
 </aside>

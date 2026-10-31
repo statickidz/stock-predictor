@@ -21,7 +21,7 @@ try {
     const path = new URL(request.url()).pathname;
     assert.ok(!/(^|\/)api(?:\/|$)/.test(path), 'Unexpected backend dependency');
     if (!forecastingStarted && /\/(models|runtime)\//.test(path)) prematureDownloads.push(path);
-    if (/\/(data|models|runtime)\//.test(path)) {
+    if (new URL(request.url()).origin === new URL(base).origin && /\/(data|models|runtime)\//.test(path)) {
       assert.ok(path.startsWith(new URL(base).pathname), `Public asset escaped deployment base: ${path}`);
     }
   });
@@ -35,19 +35,20 @@ try {
   await page.waitForFunction(() => document.querySelector('meta[name="inference-worker"]')?.content);
   const workerUrl = await page.locator('meta[name="inference-worker"]').getAttribute('content');
   assert.ok(new URL(workerUrl, base).pathname.startsWith(new URL(base).pathname), 'Worker must use the deployment base');
+
   await page.selectOption('#runtime-select','wasm');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
   await page.reload();await loading;
-  await page.click('.local-data summary');await page.click('#clear-cache');
+  await page.click('[popovertarget="settings-menu"]');await page.click('#clear-cache');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
   await page.reload();await loading;
-  await page.setInputFiles('#import-history',{name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{}')});
+  assert.equal(await page.locator('#import-history').count(),0);
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   await page.unroute('**/data/history/*.json');
   await page.click('[data-horizon="10"]');
-  console.log('Loading lifecycle: runtime change, cache clear, failed import passed');
+  console.log('Loading lifecycle: runtime change, settings cache clear, import removal passed');
   assert.equal(await page.locator('#model-select option').count(), 3);
   assert.deepEqual(prematureDownloads, [], 'Model graphs and runtime must load only when inference starts');
   forecastingStarted = true;
@@ -86,30 +87,23 @@ try {
   await page.selectOption('#model-select','small');
   assert.equal(await page.locator('#generate-button').isDisabled(),false);
   assert.equal(await page.locator('#forecast-results').isVisible(),false);
-  await page.click('.local-data summary');
+  await page.click('[popovertarget="settings-menu"]');
   await page.click('#clear-cache');
   await page.waitForFunction(()=>document.querySelector('#job-status').textContent.includes('cache cleared'));
   assert.match(await page.locator('#job-status').innerText(),/cache cleared/);
-  await page.setInputFiles('#import-history', {name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{}')});
-  await page.waitForFunction(()=>!document.querySelector('#error-panel').hidden);
-  assert.match(await page.locator('#error-message').innerText(),/64/);
-  const catalog = await (await fetch(new URL('data/assets.json',base))).json();
-  const available = catalog.assets.find(a=>a.available);
-  const history = await (await fetch(new URL(`data/history/${encodeURIComponent(available.symbol)}.json`,base))).json();
+  await page.keyboard.press('Escape');
   await page.selectOption('#model-select','mini');
-  await page.setInputFiles('#import-history',{name:'history.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...history,label:'Imported research',kind:available.kind}))});
-  await page.waitForFunction(()=>document.querySelector('#asset-name').textContent.includes('Imported research'));
   await page.click('[data-horizon="5"]');
   await page.click('#generate-button');
   await page.waitForFunction(()=>!document.querySelector('#generate-button').disabled,{}, {timeout:120000});
   assert.equal(await page.locator('#forecast-rows tr').count(),5);
-  assert.match(await page.locator('#forecast-provenance').innerText(),/Local JSON import/);
+  assert.match(await page.locator('#forecast-provenance').innerText(),/browser wasm/);
   await page.screenshot({path:'artifacts/pages-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await page.screenshot({path:'artifacts/pages-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
-  console.log('UI: 20-day forecast, CSV, cancellation, model change, cache clear, invalid import, mobile width passed');
+  console.log('UI: 20-day forecast, CSV, cancellation, model change, cache clear, mobile width passed');
 } finally {
   await browser.close();
 }

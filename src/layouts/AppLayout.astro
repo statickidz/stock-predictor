@@ -1,15 +1,33 @@
 ---
-import '../styles/global.css';
+import globalStyles from '../styles/global.css?url';
+import darkStyles from '../styles/dark.css?url';
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#f8f7f4" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f8f7f4" media="all" />
+    <meta name="theme-color" content="#111214" media="not all" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Stock Predictor is a local-first workspace for stock, ETF and crypto price forecasts, powered by Kronos." />
     <meta name="inference-worker" content="" />
+    <link rel="stylesheet" href={globalStyles} />
+    <link id="dark-styles" rel="stylesheet" href={darkStyles} media="not all" />
+    <script is:inline>
+      let theme = 'light';
+      try {
+        const saved = localStorage.getItem('stock-predictor.theme');
+        if (['light', 'dark', 'system'].includes(saved)) theme = saved;
+      } catch {}
+      {
+        document.getElementById('dark-styles').media = theme === 'dark' ? 'all' : theme === 'light' ? 'not all' : '(prefers-color-scheme: dark)';
+        document.documentElement.dataset.appearance = theme;
+        for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+          meta.media = theme === 'system' ? (meta.content === '#111214' ? '(prefers-color-scheme: dark)' : '(prefers-color-scheme: light)') : (((theme === 'dark') === (meta.content === '#111214')) ? 'all' : 'not all');
+        }
+      }
+    </script>
     <title>Stock Predictor — Market forecasts</title>
     <link rel="icon" type="image/svg+xml" href={import.meta.env.BASE_URL + 'favicon.svg'} />
   </head>

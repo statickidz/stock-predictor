@@ -22,7 +22,7 @@ Stock Predictor is a small research workspace: pick an asset, choose a Kronos mo
 - **Three real models.** Choose Kronos Mini, Small or Base, with the matching tokenizer.
 - **Your device, your forecast.** Run on CPU through WebAssembly or a supported GPU through WebGPU.
 - **A readable path ahead.** Historical prices stay solid; forecasts are dashed. Source dates and model provenance stay visible.
-- **Useful exports.** Inspect daily projections, save CSV results, or import your own history JSON.
+- **Useful exports.** Inspect daily projections and save CSV results.
 - **Honest failure states.** No invented prices or simulated-inference fallback. Cancel a forecast at any time.
 
 ## Quick start
@@ -78,7 +78,7 @@ All quotes use USD. The catalog is curated; arbitrary symbols and international 
 | [Kronos Small](https://huggingface.co/NeoQuasar/Kronos-small) | 24.7M | Tokenizer-base | 117 MB |
 | [Kronos Base](https://huggingface.co/NeoQuasar/Kronos-base) | 102.3M | Tokenizer-base | 429 MB |
 
-Runtime files download separately. Only the selected model loads. Downloads are verified with SHA-256 and can be cached locally when browser storage allows it. **Local data & storage → Clear downloaded models** removes this site's model cache.
+Runtime files download separately. Only the selected model loads. Downloads are verified with SHA-256 and can be cached locally when browser storage allows it. **Settings → Remove downloaded models** removes this site's model cache.
 
 Each forecast uses up to **256 completed candles**, averages **three samples**, and uses temperature `1.0` and top-p `0.9`. Larger models use more memory and do not guarantee better predictions. Start with Mini on phones. Results are stochastic; rerunning a forecast may change it.
 
@@ -97,7 +97,7 @@ Only one model's sessions stay loaded at a time. Changing selection during a for
 
 ### Bring your own history
 
-Under **Local data & storage**, import a JSON file containing at least 64 completed OHLCV candles and 20 future dates from the appropriate trading calendar. Files stay on your device.
+Use **Settings → Remove downloaded models** in the navbar to free model storage. Model files download again when needed; your saved selections remain.
 
 Each candle contains `date`, `open`, `high`, `low`, `close` and `volume`. The top-level object contains `label`, `kind` (`stock` or `crypto`), `candles` and `future_dates`. Use strictly increasing UTC `YYYY-MM-DD` dates and USD prices; maximum file size is 2 MB. See [configuration](docs/configuration.md) for an example.
 
@@ -130,7 +130,7 @@ tests/            Node contracts and real-browser verification
 | Guide | What you will find |
 | :--- | :--- |
 | [Architecture](docs/architecture.md) | Astro components, browser worker and asset/data boundaries |
-| [Configuration](docs/configuration.md) | Asset subsets, base paths, imports and model inputs |
+| [Configuration](docs/configuration.md) | Asset subsets, base paths and model inputs |
 | [Deployment](docs/deployment.md) | GitHub Pages, model bootstrap, static hosts and Docker |
 | [Troubleshooting](docs/troubleshooting.md) | Downloads, snapshots, browser support and missing assets |
 | [Verification](docs/verification.md) | Unit contracts, export parity and browser checks |
@@ -145,7 +145,7 @@ pnpm exec playwright install chromium
 pnpm test:browser
 ```
 
-Unit tests run without model downloads or market requests. The browser suite checks all three real models against Python reference logits/closes, plus forecasts, CSV, cancellation, cache handling, imports and mobile layout. See [verification](docs/verification.md) for repository-path and GPU checks.
+Unit tests run without model downloads or market requests. The browser suite checks all three real models against Python reference logits/closes, plus forecasts, CSV, cancellation, cache handling, settings and mobile layout. See [verification](docs/verification.md) for repository-path and GPU checks.
 
 ## Credit & license
 

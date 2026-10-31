@@ -14,8 +14,8 @@ test('obsolete history and job responses cannot commit after a selection change'
 });
 
 test('CSV exports exact forecast dates, symbols, prices and currency with escaped fields', () => {
-  const result = {asset: {symbol: 'BTC-USD', currency: 'USD'}, model:{id:'NeoQuasar/Kronos-base'}, forecast: [{date: '2026-11-01', close: 80123.45}, {date: '2026-11-02', close: 80200}]};
-  assert.equal(toCsv(result), 'symbol,date,projected_close,currency,model\r\n"BTC-USD","2026-11-01","80123.45","USD","NeoQuasar/Kronos-base"\r\n"BTC-USD","2026-11-02","80200","USD","NeoQuasar/Kronos-base"\r\n');
+  const result = {asset: {symbol: 'BTC-USD', currency: 'USD'}, model:{id:'NeoQuasar/Kronos-base'}, forecast: [{date: '2026-11-01', close: 80123.45, volume: 1234.5}, {date: '2026-11-02', close: 80200, volume: 1500}]};
+  assert.equal(toCsv(result), 'symbol,date,projected_close,currency,model,projected_volume\r\n"BTC-USD","2026-11-01","80123.45","USD","NeoQuasar/Kronos-base","1234.5"\r\n"BTC-USD","2026-11-02","80200","USD","NeoQuasar/Kronos-base","1500"\r\n');
   assert.ok(toCsv({...result, asset: {symbol: 'A"B', currency: 'USD'}}).includes('"A""B"'));
 });
 

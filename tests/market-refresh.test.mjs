@@ -1,0 +1,23 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {refreshMarket} from '../scripts/refresh-market.mjs';
+const asset = {symbol:'BTC-USD', kind:'crypto'};
+const now = new Date('2026-10-31T06:30:00Z');
+const rows = Array.from({length:64}, (_, i) => ({date:new Date(Date.UTC(2026,7,i+1)),open:100,high:102,low:99,close:101,volume:1}));
+test('data-only refresh retains validated snapshots on provider failure and rejects empty publication', async t => {
+  const output = await mkdtemp(join(tmpdir(), 'market-refresh-'));
+  t.after(() => rm(output,{recursive:true,force:true}));
+  const options = {assets:[asset], output, now, warn:()=>{}};
+  await assert.rejects(refreshMarket({...options,loader:async()=>{throw Error('offline');}}), /No real market/);
+  await refreshMarket({...options,loader:async()=>rows});
+  const path = join(output,'history/BTC-USD.json');
+  const original = await readFile(path,'utf8');
+  const result = await refreshMarket({...options,loader:async()=>{throw Error('offline');}});
+  assert.equal(result.retained,1);
+  assert.equal(await readFile(path,'utf8'),original);
+  await writeFile(path,'{}');
+  await assert.rejects(refreshMarket({...options,loader:async()=>{throw Error('offline');}}), /No real market/);
+});

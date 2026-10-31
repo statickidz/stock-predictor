@@ -1,6 +1,21 @@
 // Pure preprocessing and sampling shared by the browser worker and Node checks.
 const columns = ['open', 'high', 'low', 'close', 'volume'];
 
+// Decoder layout is [sample, context + horizon, OHLCV + amount].
+export function decodeForecast(values, {length, horizon, mean, std}, batch) {
+  const seq = length + horizon;
+  const channel = (column, index) => {
+    let value = 0;
+    for (let b = 0; b < batch; b++) value += values[(b * seq + length + index) * 6 + column] / batch;
+    return value * (std[column] + 1e-5) + mean[column];
+  };
+  const closes = Array.from({length: horizon}, (_, i) => channel(3, i));
+  const volumes = Array.from({length: horizon}, (_, i) => channel(4, i));
+  if (!closes.every(v => Number.isFinite(v) && v > 0) || !volumes.every(Number.isFinite)) throw new Error('Model returned invalid prices or volume.');
+  // The decoder is unconstrained; negative volume has no physical meaning.
+  return {closes, volumes: volumes.map(v => Math.max(0, v))};
+}
+
 export function stamp(date) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Dates must use YYYY-MM-DD.');
   const d = new Date(`${date}T00:00:00Z`);

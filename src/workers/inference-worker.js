@@ -1,4 +1,4 @@
-import {prepare, sample} from '../lib/inference-core.js';
+import {prepare, sample, decodeForecast} from '../lib/inference-core.js';
 import {graphBytes} from '../lib/model-cache.js';
 import {assetUrl} from '../lib/asset-url.js';
 
@@ -101,13 +101,7 @@ async function forecast(input, parity) {
   let decoded;
   try { decoded = await sessions.decoder.run(feeds); } finally { release(feeds); }
   try {
-    const closes = Array.from({length: p.horizon}, (_, i) => {
-      let value = 0;
-      for (let b = 0; b < batch; b++) value += decoded.values.data[(b*seq + p.length + i)*6 + 3] / batch;
-      return value * (p.std[3] + 1e-5) + p.mean[3];
-    });
-    if (!closes.every(v => Number.isFinite(v) && v > 0)) throw new Error('Model returned invalid prices.');
-    return closes;
+    return decodeForecast(decoded.values.data, p, batch);
   } finally { release(decoded); }
 }
 
@@ -122,13 +116,13 @@ onmessage = async ({data}) => {
     if (!['mini','small','base'].includes(data.model?.key)) throw new Error('Choose a supported model.');
     await load(data.provider, data.model);
     const loaded = performance.now();
-    const closes = await forecast(data.input, data.parity);
+    const {closes, volumes} = await forecast(data.input, data.parity);
     let maxError = null;
     if (data.parity) {
       maxError = Math.max(...closes.map((v, i) => Math.abs(v - data.input.expected_closes[i])));
       if (maxError > 0.01) throw new Error(`Parity failed: maximum close error ${maxError.toFixed(6)} > 0.01 USD.`);
     }
-    emit({type: 'result', closes, maxError, provider, loadMs: loaded-started, inferenceMs: performance.now()-loaded});
+    emit({type: 'result', closes, volumes, maxError, provider, loadMs: loaded-started, inferenceMs: performance.now()-loaded});
   } catch (error) {
     emit({type: 'error', message: error.message || String(error)});
   } finally {

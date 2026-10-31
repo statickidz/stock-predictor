@@ -20,11 +20,10 @@ The complete build defaults to all models/catalog entries; use the Node preparat
 
 BASE_PATH selects a project prefix, default /. SITE_URL optionally sets the canonical origin. Set the same values for build and preview. For example BASE_PATH=/stock-predictor/ and SITE_URL=https://example.github.io. No inference API token, server model device or server host variables exist.
 
-## Browser controls and local imports
+## Browser controls and model storage
 
-Mini and WebAssembly are defaults. WebGPU is offered where the browser exposes it, but adapter initialization can still fail; explicitly select CPU if necessary. Browser storage is optional. Clear model downloads under Local data & storage.
+Mini and WebAssembly are defaults. WebGPU is offered where the browser exposes it, but adapter initialization can still fail; explicitly select CPU if necessary. Browser storage is optional. Remove downloaded models through the navbar Settings popup. Saved selections remain; model files download again when needed.
 
-Import JSON with label, kind (stock or crypto), candles and future_dates. Each candle has date/open/high/low/close/volume. Include at least 64 valid completed candles and 20 future dates, strictly increasing UTC YYYY-MM-DD, USD prices, and a file smaller than 2 MB. Future stock dates must follow the correct exchange calendar; crypto dates are UTC calendar days. Files stay on this device.
 
 ## Model inputs
 
