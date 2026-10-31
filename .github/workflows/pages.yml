@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       prepare_models:
-        description: 'Bootstrap missing model exports using optional Python tooling'
+        description: 'Force model preparation (missing or invalid assets rebuild automatically)'
         type: boolean
         default: false
 
@@ -21,7 +21,7 @@ jobs:
   models:
     name: Prepared model assets
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -35,23 +35,19 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .cache/browser-models
-          key: browser-models-v2-${{ hashFiles('tools/model-export/**', 'data/models.json') }}
+          key: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-
       - name: Validate prepared assets
         id: models
         continue-on-error: true
         run: node scripts/check-models.mjs
-      - name: Explain missing bootstrap
-        if: steps.models.outcome == 'failure' && !inputs.prepare_models
-        run: |
-          echo "::error::Prepared model assets are absent or invalid. Run this workflow manually with prepare_models enabled, or restore a trusted model cache."
-          exit 1
-      - name: Optional model-export Python environment
-        if: steps.models.outcome == 'failure' && inputs.prepare_models
+      - name: Model-export Python environment
+        if: steps.models.outcome == 'failure' || inputs.prepare_models
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
-      - name: Optional model preparation
-        if: steps.models.outcome == 'failure' && inputs.prepare_models
+      - name: Prepare missing or invalid models
+        if: steps.models.outcome == 'failure' || inputs.prepare_models
         run: |
           python -m pip install -r tools/model-export/requirements-torch.txt
           python -m pip install -r tools/model-export/requirements.txt
@@ -60,11 +56,11 @@ jobs:
           done
           node scripts/check-models.mjs
       - name: Save prepared exports
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.models.outcome == 'failure' || inputs.prepare_models
         uses: actions/cache/save@v4
         with:
           path: .cache/browser-models
-          key: browser-models-v2-${{ hashFiles('tools/model-export/**', 'data/models.json') }}
+          key: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
       - uses: actions/upload-artifact@v4
         with:
           name: prepared-models

@@ -3,7 +3,7 @@
 - Missing models on a clean checkout: restore prepared .cache/browser-models or follow tools/model-export/README.md. pnpm build does not secretly invoke Python.
 - Missing data during dev: run pnpm assets:prepare once, or assets:offline if real snapshots are cached.
 - Node provider refresh fails: previous real snapshots can be retained. Check source/fetch dates, try again later. No fake prices are generated.
-- First Pages deployment fails model checks: manually rerun with prepare_models enabled. Delete corrupt matching Actions caches before rebuilding them.
+- Pages model cache is missing or invalid: the workflow automatically re-exports and validates models. If recovery fails, inspect the Python export and validation logs. prepare_models optionally forces a rebuild.
 - Broken project-site URLs: configure BASE_PATH and use the same prefix for build/preview. Do not use the hashed JS/worker directory as the model root.
 - Module/WASM MIME errors: serve with Astro preview, the supplied nginx configuration or correctly configured static hosting.
 - GPU initialization fails: use HTTPS/localhost and a supported adapter or choose WebAssembly explicitly.

@@ -22,4 +22,4 @@ Generated public/data, public/models and public/runtime are ignored by Git. Astr
 
 tools/model-export contains the sole Python environment and the unchanged upstream Kronos architecture. It exports pinned PyTorch weights into browser-compatible ONNX graphs and creates reference fixtures. The exporter validates wrappers against upstream and ONNX against PyTorch; real browser tests validate the actual deployed graphs.
 
-The ordinary Astro workflow never launches Python. A clean checkout requires a prepared model bundle or the explicit optional exporter once. CI makes that bootstrap boundary visible. Git history records the previous server implementation.
+The Astro build consumes prepared model bundles. The separate Pages model job automatically runs Python exports when cached bundles are missing or invalid. Local clean checkouts need a prepared bundle or an exporter run. Git history records the previous server implementation.
