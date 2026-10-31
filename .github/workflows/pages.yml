@@ -20,7 +20,7 @@ concurrency:
 jobs:
   models:
     name: Prepared model assets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -32,22 +32,21 @@ jobs:
           package-manager-cache: false
       - name: Restore prepared exports
         id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/browser-models
           key: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-
       - name: Validate prepared assets
         id: models
-        continue-on-error: true
-        run: node scripts/check-models.mjs
+        run: node scripts/check-models.mjs --probe
       - name: Model-export Python environment
-        if: steps.models.outcome == 'failure' || inputs.prepare_models
+        if: steps.models.outputs.valid != 'true' || inputs.prepare_models
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
       - name: Prepare missing or invalid models
-        if: steps.models.outcome == 'failure' || inputs.prepare_models
+        if: steps.models.outputs.valid != 'true' || inputs.prepare_models
         run: |
           python -m pip install -r tools/model-export/requirements-torch.txt
           python -m pip install -r tools/model-export/requirements.txt
@@ -56,12 +55,12 @@ jobs:
           done
           node scripts/check-models.mjs
       - name: Save prepared exports
-        if: steps.models.outcome == 'failure' || inputs.prepare_models
-        uses: actions/cache/save@v4
+        if: steps.models.outputs.valid != 'true' || inputs.prepare_models
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/browser-models
           key: browser-models-v3-${{ hashFiles('tools/model-export/**', 'data/models.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: prepared-models
           path: .cache/browser-models
@@ -71,7 +70,7 @@ jobs:
   build:
     name: Astro website / Node 24
     needs: models
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -84,11 +83,11 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: prepared-models
           path: .cache/browser-models
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/pages-history
           key: market-v2-${{ runner.os }}-${{ github.run_id }}
@@ -96,7 +95,7 @@ jobs:
       - run: npm install --global pnpm@11.25.0
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm test
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         id: pages
       - name: Refresh market snapshots using Node
         run: pnpm assets:prepare
@@ -114,13 +113,13 @@ jobs:
           pnpm exec playwright install --with-deps chromium
           pnpm preview --port 8020 > /tmp/pages-preview.log 2>&1 &
           SMOKE_URL="http://127.0.0.1:8020${BASE_PATH}" pnpm test:browser
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write
@@ -129,4 +128,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
