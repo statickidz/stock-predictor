@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      prepare_models:
+        description: 'Bootstrap missing model exports using optional Python tooling'
+        type: boolean
+        default: false
   schedule:
     - cron: '30 6 * * *'
 
@@ -15,54 +20,104 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  models:
+    name: Prepared model assets
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Restore prepared exports
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/browser-models
+          key: browser-models-v2-${{ hashFiles('tools/model-export/**', 'data/models.json') }}
+      - name: Validate prepared assets
+        id: models
+        continue-on-error: true
+        run: node scripts/check-models.mjs
+      - name: Explain missing bootstrap
+        if: steps.models.outcome == 'failure' && !inputs.prepare_models
+        run: |
+          echo "::error::Prepared model assets are absent or invalid. Run this workflow manually with prepare_models enabled, or restore a trusted model cache."
+          exit 1
+      - name: Optional model-export Python environment
+        if: steps.models.outcome == 'failure' && inputs.prepare_models
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - name: Optional model preparation
+        if: steps.models.outcome == 'failure' && inputs.prepare_models
+        run: |
+          python -m pip install -r tools/model-export/requirements-torch.txt
+          python -m pip install -r tools/model-export/requirements.txt
+          for model in mini small base; do
+            python tools/model-export/export.py --model "$model"
+          done
+          node scripts/check-models.mjs
+      - name: Save prepared exports
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/browser-models
+          key: browser-models-v2-${{ hashFiles('tools/model-export/**', 'data/models.json') }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prepared-models
+          path: .cache/browser-models
+          include-hidden-files: true
+          retention-days: 1
+
+  build:
+    name: Astro website / Node 24
+    needs: models
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pages: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: |
-            requirements*.txt
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Cache exported models and prior market snapshots
-        uses: actions/cache@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            .cache/huggingface
-            .cache/browser-models
-            .cache/pages-history
-          key: pages-${{ runner.os }}-${{ hashFiles('scripts/export_browser.py', 'vendor/kronos/model/*.py') }}-${{ github.run_id }}
-          restore-keys: |
-            pages-${{ runner.os }}-${{ hashFiles('scripts/export_browser.py', 'vendor/kronos/model/*.py') }}-
-            pages-${{ runner.os }}-
-      - name: Install build dependencies
-        run: |
-          python -m pip install -r requirements-torch.txt
-          python -m pip install -r requirements.txt -r requirements-browser.txt -r requirements-dev.txt
-          npm install --global pnpm@11.25.0
-          pnpm install --frozen-lockfile --ignore-scripts
-      - name: Verify and build static site
-        run: |
-          node --test tests/*.test.mjs
-          python -m pytest -q
-          python scripts/build_pages.py
-      - name: Verify the static artifact in Chromium
+          name: prepared-models
+          path: .cache/browser-models
+      - uses: actions/cache@v4
+        with:
+          path: .cache/pages-history
+          key: market-v2-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: market-v2-${{ runner.os }}-
+      - run: npm install --global pnpm@11.25.0
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm test
+      - uses: actions/configure-pages@v5
+        id: pages
+      - name: Refresh market snapshots using Node
+        run: pnpm assets:prepare
+      - run: pnpm build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+      - name: Verify Astro artifact in Chromium
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          SITE_URL: ${{ steps.pages.outputs.origin }}
         run: |
           pnpm exec playwright install --with-deps chromium
-          python scripts/serve_browser.py --port 8020 --base-path /stock-predictor/ > /tmp/pages-preview.log 2>&1 &
-          node tests/browser-smoke.mjs
-      - uses: actions/configure-pages@v5
+          pnpm preview --port 8020 > /tmp/pages-preview.log 2>&1 &
+          SMOKE_URL="http://127.0.0.1:8020${BASE_PATH}" pnpm test:browser
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
@@ -77,6 +132,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy static artifact
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4

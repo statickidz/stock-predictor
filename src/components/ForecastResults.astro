@@ -1,0 +1,29 @@
+<section
+  id="forecast-results"
+  class="results-section"
+  hidden
+  aria-labelledby="results-heading"
+>
+  <div class="section-heading">
+    <div>
+      <h2 id="results-heading">The path ahead</h2><p id="results-caption"></p>
+    </div><button id="download-csv" class="secondary-button" type="button"
+      ><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"
+        ><path
+          d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"
+          stroke="currentColor"
+          fill="none"
+          stroke-width="1.5"></path></svg
+      >Export CSV</button>
+  </div><div class="table-scroll">
+    <table>
+      <caption class="sr-only">Daily projected closing prices</caption><thead
+        ><tr
+          ><th scope="col">Date</th><th scope="col">Projected close</th><th
+            scope="col">From last observed close</th
+          ></tr
+        ></thead
+      ><tbody id="forecast-rows"></tbody>
+    </table>
+  </div><p class="provenance" id="forecast-provenance"></p>
+</section>

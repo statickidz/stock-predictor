@@ -1,0 +1,74 @@
+<section class="chart-panel" aria-labelledby="asset-name">
+  <div class="asset-heading">
+    <div class="asset-identity">
+      <span class="asset-mark" id="asset-mark">A</span><div>
+        <h2 id="asset-name">Apple <span id="asset-symbol">AAPL</span></h2><p
+          id="asset-exchange"
+        >
+          NASDAQ · USD
+        </p>
+      </div>
+    </div><span class="daily-tag">1D</span>
+  </div>
+  <div class="quote-row">
+    <div>
+      <span class="quote" id="last-price">—</span><span
+        class="daily-change"
+        id="daily-change"></span><p id="price-caption">
+        Loading completed daily candles…
+      </p>
+    </div><div class="chart-ranges" aria-label="Chart history range">
+      <button type="button" data-range="1">1M</button><button
+        type="button"
+        data-range="3"
+        aria-pressed="true">3M</button
+      ><button type="button" data-range="6">6M</button><button
+        type="button"
+        data-range="12">1Y</button>
+    </div>
+  </div>
+  <div
+    class="chart-wrap"
+    id="chart-wrap"
+    tabindex="0"
+    aria-label="Closing price chart. Use left and right arrow keys to explore prices."
+  >
+    <svg id="price-chart" role="img" aria-label="Loading price chart"></svg>
+    <div id="chart-message" class="chart-message">
+      <div class="loading-rule"></div><strong
+        >Finding your market perspective</strong
+      ><span>Loading daily price history.</span>
+    </div>
+    <div id="chart-tooltip" class="chart-tooltip" hidden></div>
+  </div>
+  <div class="chart-foot">
+    <div class="chart-legend">
+      <span><i class="legend-observed"></i>Historical close</span><span
+        ><i class="legend-forecast"></i>Kronos forecast</span>
+    </div><span class="chart-note" id="chart-note">Completed candles only</span>
+  </div>
+  <div id="forecast-summary" class="forecast-summary" hidden>
+    <div>
+      <span>Projected close</span><strong id="projected-price">—</strong>
+    </div><div>
+      <span>Projected change</span><strong id="projected-change">—</strong>
+    </div><div>
+      <span>Forecast through</span><strong id="projected-date">—</strong>
+    </div>
+  </div>
+  <div class="forecast-empty" id="forecast-empty">
+    <span class="empty-icon" aria-hidden="true"
+      ><svg width="22" height="22" viewBox="0 0 24 24"
+        ><path
+          d="m3 17 5-5 4 3 8-10M15 5h5v5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"></path></svg
+      ></span
+    ><div>
+      <strong>What might the next move look like?</strong><p>
+        Choose a horizon and generate a forecast to explore one possible path.
+      </p>
+    </div>
+  </div>
+</section>

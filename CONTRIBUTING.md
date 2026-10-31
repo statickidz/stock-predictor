@@ -1,11 +1,13 @@
 # Contributing
 
-Use Python 3.12 and Node 24. Install build/development dependencies as shown in README. Production source is app/static; scripts/build_pages.py creates ignored dist artifacts. Keep weights, market data, caches, credentials and .env out of Git.
+Stock Predictor is an Astro static app. Use Node24/pnpm11.25.0 and follow README's prepared-assets setup. Ordinary development, preview, tests, data refresh and website builds use Node only. There is no Python application server.
 
-Run pnpm test and python -m pytest -q. A Mini/subset artifact is convenient for iteration. Before merging deployment changes, build all models and run actual browser smoke at a repository subpath.
+Keep src/pages/layouts/components for document/UI structure, src/lib for browser logic and src/workers for inference. Node packaging/market code belongs under scripts and curated metadata/calendar under data. Preserve the visual system in DESIGN.md, accessible chart controls, CSV provenance, explicit dates, cancellation and stale-result protection.
 
-Preserve DESIGN.md, chart keyboard interactions, CSV provenance, date labels and selection invalidation. Keep URLs relative. Do not add fake-data/inference fallbacks, API dependencies or client-embedded secrets.
+Run pnpm test and pnpm build:ui for frontend work. Before merging deployment/inference changes, prepare real assets, build the full artifact and run pnpm test:browser under a repository prefix. Validate all models and both supported runtimes where possible. Preserve lazy model downloads and single-threaded WASM compatibility with Pages.
 
-Export changes must retain the unmodified upstream source, pinned provenance and upstream/PyTorch/ONNX/browser parity checks. Cache persistence is optional; storage failures must not block verified inference. GitHub Pages cannot supply custom isolation headers, so default WASM remains single-threaded.
+tools/model-export is optional maintainer tooling, not a dependency to pull into the app. Keep vendored architecture unchanged, pin sources and validate regenerated graphs/reference fixtures. Do not commit generated model/data/runtime assets, private datasets, .env, local environments or caches.
 
-Legacy Python backend modules remain reference/test tooling. Production features use browser inference and static contracts. Building does not authorize pushing, publishing data or changing repository settings.
+Node data logic must preserve adjusted prices, complete-candle filtering, early closes, holiday sessions and explicit calendar bounds. Provider failures may retain prior real snapshots but must never fabricate history. Cache failures must not prevent verified in-memory inference.
+
+Building or committing does not authorize pushing, publishing data or changing repository settings. Review redistribution rights before public snapshot publication.

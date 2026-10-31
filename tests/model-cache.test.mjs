@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {verifiedChunk} from '../app/static/model-cache.js';
+import {verifiedChunk} from '../src/lib/model-cache.js';
 
 test('a corrupted cached model is replaced with verified network content', async () => {
   const chunk = {bytes:4,sha256:createHash('sha256').update('good').digest('hex')};

@@ -1,29 +1,35 @@
-# Static deployment
+# Deployment
 
-The production artifact is dist. It contains HTML/CSS/ES modules, browser runtime files, immutable model chunks, JSON data and notices. No Python, Node, API token or server inference process runs at deployment time.
+Build with pnpm assets:prepare followed by pnpm build. The first command refreshes real snapshots and packages prepared model inputs; build reuses those snapshots and compiles Astro. Only dist is deployed.
 
 ## GitHub Pages
 
-Choose GitHub Actions in Settings → Pages. The GitHub Pages workflow builds and uploads dist with actions/upload-pages-artifact and deploys with actions/deploy-pages. Only the deployment job has pages:write and id-token:write permissions.
+Select GitHub Actions in Settings → Pages. The workflow separates prepared models, Node website build/browser verification, and Pages deployment.
 
-Pushes to main and manual dispatch trigger the workflow. Feature-branch dispatch requires that branch to be allowed by the github-pages environment. The 06:30 UTC daily schedule runs from the default branch. The owner must push/merge and enable Pages; keeping a branch locally does not publish a site.
+On the first run, manually dispatch GitHub Pages with prepare_models enabled. If prepared exports are missing, the model job installs the isolated Python dependencies and runs the three pinned exports. Successful exports are cached and passed as an artifact to the Node build job. Future runs restore them without Python. Missing/expired/invalid caches without explicit bootstrap fail with instructions; rerun with prepare_models enabled. If a corrupt cache has the same key, delete that Actions cache before bootstrapping again.
 
-First builds download pinned weights and validate exports. Subsequent runs cache weights, exported graphs and prior snapshots. Successful runs save a fresh snapshot cache. Exporter/architecture hashes invalidate graph caches. No weights or price datasets are committed to Git.
+Normal pushes to main and the daily 06:30 UTC schedule use prepared exports. The website job installs Node dependencies, refreshes market snapshots with Node, packages assets, builds Astro and runs browser smoke before uploading dist. Model binaries are never committed to Git. The owner must push/merge and enable Pages; local commits do not deploy anything.
 
-A full build is approximately 673 MB, below Pages' 1 GB published-site limit. The builder refuses artifacts larger than 950 MB. Every model chunk is at most 16 MiB. All URLs resolve relative to their containing modules and support repository subpaths.
+The workflow derives Astro's origin and base path from the configured Pages site. This supports repository paths, root user/organization sites and custom domains. For other hosts, SITE_URL controls the canonical origin and BASE_PATH the deployment prefix; keep them consistent in build and preview. See [Astro's Pages guide](https://docs.astro.build/en/guides/deploy/github/).
 
-See GitHub's [custom workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) and [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+A complete three-model artifact is roughly 673 MB, below GitHub Pages' 1 GB limit. check-dist enforces a 950 MB budget and rejects development files/symlinks. Model chunks are at most 16 MiB; runtime files can be larger.
 
-## Market snapshots
+## Local production checks
 
-Pages cannot run yfinance. Builds fetch completed candles and the next 20 exchange/calendar dates. The browser slices those dates for the chosen horizon. Failed refreshes reuse prior real snapshots where possible; missing assets are unavailable. A build with zero real snapshots fails.
+    pnpm assets:offline
+    # PowerShell: $env:BASE_PATH='/stock-predictor/'
+    # POSIX shell: export BASE_PATH=/stock-predictor/
+    pnpm build
+    pnpm preview --port 8020
 
-Observation/fetch dates remain visible. Forecast dates are relative to the snapshot, not the current wall clock. Rebuild when history needs refreshing. Local imports include their own future dates and stay in the browser.
+Use that same prefix in SMOKE_URL when running pnpm test:browser. pnpm build:ui only compiles the frontend and is not a complete forecasting artifact when assets are absent.
 
-The default provider's personal-use terms do not grant public redistribution rights. Before public/commercial deployment, replace MarketData._load with a provider permitting publication or use your own licensed dataset. Packaging and workflows do not grant data rights.
+## Other static hosts and Docker
 
-## Other static hosts
+Serve dist over HTTPS, with .mjs as JavaScript and .wasm as WebAssembly. WebGPU/Cache Storage require a secure context. No custom cross-origin isolation headers are needed for single-threaded WASM. If adding a CSP, allow same-origin workers/fetches and WebAssembly compilation.
 
-Serve dist over HTTPS or localhost. Configure .mjs as text/javascript and .wasm as application/wasm. GitHub Pages supplies these MIME types. No COOP/COEP headers are required for single-threaded WASM. If adding a CSP, allow same-origin workers/fetches and WebAssembly compilation. JSON should revalidate; content-hashed model chunks can be cached immutably.
+Optional docker compose up --build -d serves an already-built dist with nginx on localhost:8000. It runs no model export, market refresh or inference. For the container root URL, build with BASE_PATH=/ first.
 
-Docker is optional: build dist first, then docker compose up --build -d. The nginx image copies only dist and serves it at localhost:8000. Rebuild the image after static changes. No GPU device, inference cache volume or API environment variables are needed.
+## Snapshot publication
+
+The schedule refreshes dated completed candles, not live quotes. Provider failures can retain prior real snapshots; the interface shows observation/fetch dates. The default Yahoo integration does not grant public redistribution rights. Use appropriately licensed data before public/commercial publication. Local imports stay in the browser and include their own future dates.

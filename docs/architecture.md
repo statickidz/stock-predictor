@@ -1,15 +1,25 @@
 # Architecture
 
-The build produces a static site; the visitor's browser runs the models.
+Stock Predictor has one application architecture: an Astro static frontend running Kronos in browser workers. Node prepares deployable model/runtime assets and market snapshots. Python is isolated to optional model maintenance.
 
-Build-time Python exports pinned Kronos weights into four ONNX graphs per model and fetches dated history plus future trading sessions. The builder copies only frontend/runtime assets, graph chunks, JSON data and notices into dist.
+## Boundaries
 
-app/static/app.js owns selection/view state. data.js loads snapshots and validates imports. inference-client.js owns worker requests/cancellation. inference-worker.js owns one model's sessions and executes tokenizer encoding, two-stage autoregressive generation and tokenizer decoding. inference-core.js implements six-feature normalization, timestamps and top-p sampling. model-cache.js verifies SHA-256 chunks before using cached or downloaded bytes.
+Astro renders the document shell and workspace components from src/pages, src/layouts and src/components. Browser modules in src/lib own chart rendering, selection/CSV state, import contracts, cache validation and worker requests. src/workers owns model execution. No API server, job queue or server-side inference process exists.
 
-Requests carry IDs and selection state has a generation counter. Selection changes during inference terminate the worker; obsolete responses cannot commit. Idle sessions are reused. Model/provider changes release old sessions. Cache failures permit memory-only inference; corrupt weights never reach the runtime.
+The inference flow is normalization → learned tokenizer encoder → two-stage autoregressive generation → tokenizer decoder → sample averaging and inverse normalization. Preserve the verified algorithms when changing the interface. One worker holds one model's sessions. Selection changes invalidate pending work; cancellation terminates the worker. Idle sessions can be reused.
 
-Every URL is relative to the deployment directory. No production code calls /api. Static runtime assets still need to load after page reload; this is not a full offline PWA.
+A shared asset-base helper resolves data, models and runtime from Astro's deployment base. The module worker is emitted by Vite, and its hashed output location is not the public asset root. ONNX Runtime and model weights stay outside the application JS bundle and load only when inference is requested.
 
-Architecture source remains unchanged at upstream commit 67b630e67f6a18c9e9be918d9b4337c960db1e9a. Export wrappers remove mutable rotary caches and replace bit unpacking with portable arithmetic. Wrappers are checked against upstream, then ONNX is checked against PyTorch. Browser fixtures validate both stages' logits and reconstructed closes using fixed tokens.
+## Data and assets
 
-Other Python modules preserve backend comparisons/regressions and supply the catalog, market normalization and calendars. They are absent from the static artifact.
+data/assets.json contains the curated catalog; data/models.json records pinned model/tokenizer profiles. The versioned XNYS calendar in data/calendar includes sessions, actual UTC close times and provenance. Calendar coverage is explicit; exhaustion fails instead of guessing holidays.
+
+scripts/prepare-assets.mjs packages .cache/browser-models into verified content-addressed chunks, copies the browser runtime/licenses, and prepares public/data. Its Node market adapter normalizes adjusted OHLCV and filters incomplete stock sessions and the current crypto UTC day. Prior real snapshots can survive provider failures. Missing data remains unavailable; zero real snapshots fail deployment preparation.
+
+Generated public/data, public/models and public/runtime are ignored by Git. Astro copies them into dist alongside the compiled frontend. The complete artifact must remain below the configured 950 MB budget.
+
+## Model maintenance
+
+tools/model-export contains the sole Python environment and the unchanged upstream Kronos architecture. It exports pinned PyTorch weights into browser-compatible ONNX graphs and creates reference fixtures. The exporter validates wrappers against upstream and ONNX against PyTorch; real browser tests validate the actual deployed graphs.
+
+The ordinary Astro workflow never launches Python. A clean checkout requires a prepared model bundle or the explicit optional exporter once. CI makes that bootstrap boundary visible. Git history records the previous server implementation.

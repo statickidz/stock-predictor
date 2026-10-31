@@ -1,9 +1,9 @@
-// Run against scripts/serve_browser.py --port 8020 --base-path /stock-predictor/
+// Run against the built Astro artifact: BASE_PATH=/stock-predictor/ pnpm preview.
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {mkdir} from 'node:fs/promises';
 
-const base = process.env.SMOKE_URL || 'http://127.0.0.1:8020/stock-predictor/';
+const base = process.env.SMOKE_URL || 'http://127.0.0.1:4321/';
 const browser = await chromium.launch({headless:true, ...(process.env.BROWSER_CHANNEL ? {channel:process.env.BROWSER_CHANNEL} : {})});
 try {
   await mkdir('artifacts',{recursive:true});
@@ -14,8 +14,17 @@ try {
   }
   const page = await browser.newPage({acceptDownloads:true});
   const errors = [];
+  const prematureDownloads = [];
+  let forecastingStarted = false;
   page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => assert.ok(!new URL(request.url()).pathname.startsWith('/api'), 'Unexpected backend dependency'));
+  page.on('request', request => {
+    const path = new URL(request.url()).pathname;
+    assert.ok(!/(^|\/)api(?:\/|$)/.test(path), 'Unexpected backend dependency');
+    if (!forecastingStarted && /\/(models|runtime)\//.test(path)) prematureDownloads.push(path);
+    if (/\/(data|models|runtime)\//.test(path)) {
+      assert.ok(path.startsWith(new URL(base).pathname), `Public asset escaped deployment base: ${path}`);
+    }
+  });
   await page.route('**/data/history/*.json',async route=>{
     await new Promise(resolve=>setTimeout(resolve,600));
     await route.continue();
@@ -23,6 +32,9 @@ try {
   let loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
   await page.goto(base);
   await loading;
+  await page.waitForFunction(() => document.querySelector('meta[name="inference-worker"]')?.content);
+  const workerUrl = await page.locator('meta[name="inference-worker"]').getAttribute('content');
+  assert.ok(new URL(workerUrl, base).pathname.startsWith(new URL(base).pathname), 'Worker must use the deployment base');
   await page.selectOption('#runtime-select','wasm');
   await page.waitForFunction(() => !document.querySelector('#generate-button').disabled,{}, {timeout:5000});
   loading=page.waitForRequest(request=>request.url().includes('/data/history/'));
@@ -37,13 +49,15 @@ try {
   await page.click('[data-horizon="10"]');
   console.log('Loading lifecycle: runtime change, cache clear, failed import passed');
   assert.equal(await page.locator('#model-select option').count(), 3);
+  assert.deepEqual(prematureDownloads, [], 'Model graphs and runtime must load only when inference starts');
+  forecastingStarted = true;
   for (const key of ['mini','small','base']) {
-    const result = await page.evaluate(async ({key, gpu}) => {
+    const result = await page.evaluate(async ({key, gpu, workerUrl}) => {
       const profiles = await (await fetch('./data/models.json')).json();
       const model = profiles.models.find(m => m.key === key);
       const input = await (await fetch(`./models/${key}/fixture.json`)).json();
       return new Promise((resolve,reject) => {
-        const worker = new Worker('./inference-worker.js', {type:'module'});
+        const worker = new Worker(workerUrl, {type:'module'});
         const timeout = setTimeout(()=>{worker.terminate();reject(Error('Worker timeout'));},180000);
         worker.onerror = e => {clearTimeout(timeout);worker.terminate();reject(Error(e.message));};
         worker.onmessage = ({data}) => {
@@ -53,7 +67,7 @@ try {
         };
         worker.postMessage({requestId:1,input,model,provider:gpu?'webgpu':'wasm',parity:true});
       });
-    }, {key, gpu:process.env.SMOKE_WEBGPU === '1'});
+    }, {key, gpu:process.env.SMOKE_WEBGPU === '1', workerUrl});
     assert.ok(result.maxError < .01);
     console.log(`${key}: parity passed; error $${result.maxError.toFixed(6)}; inference ${(result.inferenceMs/1000).toFixed(2)}s`);
   }

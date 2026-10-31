@@ -1,0 +1,9 @@
+# Optional maintainer tooling. The Astro app does not install these packages.
+numpy==2.2.6
+pandas==2.2.3
+huggingface_hub==0.33.1
+einops==0.8.1
+safetensors==0.6.2
+tqdm==4.67.1
+onnx==1.20.1
+onnxruntime==1.24.2

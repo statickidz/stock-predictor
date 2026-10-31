@@ -1,20 +1,22 @@
 # Verification
 
-Run pnpm test and python -m pytest -q. Unit tests cover frontend selection/CSV/chart, data contracts, corrupt model caches, sampling/normalization, model chunking and date contracts, alongside preserved Python backend/market/calendar regressions.
+pnpm test runs Node contracts for frontend state/CSV/chart, imports, normalization/sampling, cache corruption, market sessions/completed candles, catalog and packaging. No Python, downloads or provider calls are needed.
 
-A real build compares export wrappers against unmodified upstream and ONNX against PyTorch at batch/sequence sizes (1,17), (3,256) and (3,276). It checks graph validity and creates matching browser fixtures.
+pnpm build:ui checks Astro compilation without preparing models. For the complete artifact, prepare real model assets/snapshots and run pnpm build. check-dist verifies size and excludes development files.
 
-For deployed-code verification:
+## Real browser checks
 
     pnpm exec playwright install chromium
-    python scripts/serve_browser.py --port 8020 --base-path /stock-predictor/
+    pnpm preview
     # In another terminal:
-    node tests/browser-smoke.mjs
+    pnpm test:browser
 
-BROWSER_CHANNEL=msedge selects installed Edge. SMOKE_URL selects another preview. SMOKE_WEBGPU=1 checks all-model GPU parity on compatible devices; UI checks use default WASM.
+The default smoke URL is http://127.0.0.1:4321/. Set SMOKE_URL to the actual preview URL when changing port or BASE_PATH. For example, a repository-path preview on port8020 needs SMOKE_URL=http://127.0.0.1:8020/stock-predictor/. BROWSER_CHANNEL=msedge uses installed Edge. SMOKE_WEBGPU=1 checks parity on compatible GPU devices; ordinary smoke uses WebAssembly.
 
-The smoke test uses real browser workers, comparing every generation step's logits and final closes against Python fixtures. It also exercises a 20-day forecast, CSV, cancellation, stale selection, cache deletion, invalid import and mobile overflow under a repository prefix. Accidental /api requests fail the test.
+The suite obtains the actual Vite-emitted worker URL from the app rather than assuming an unbundled file. It checks all three models' generation logits and decoded closes against fixed-token reference fixtures; loading lifecycle, forecasts, CSV, cancellation, selection invalidation, cache clearing, imports and mobile layout are also checked. It rejects backend requests and model/runtime downloads before inference.
 
-Fixed tokens isolate numerical differences from random-number-generator differences. Parity does not establish accuracy, calibrated uncertainty or identical stochastic forecasts. Keep fixtures and graphs from the same export together.
+The optional model exporter independently compares wrappers to unchanged upstream architecture and ONNX outputs to PyTorch at several batch/sequence sizes. Its Python dependencies are not frontend test dependencies. See tools/model-export/README.md.
 
-Desktop success is not a mobile memory/performance guarantee. Test target devices. Some WebGPU nodes remain assigned to CPU; runtime placement warnings are expected.
+README images are screenshots of actual browser forecasts. With a prepared preview running, use node scripts/capture-screenshots.mjs to refresh them; it accepts the same SMOKE_URL and BROWSER_CHANNEL options. It never injects demo prices or predictions.
+
+Parity does not establish predictive accuracy, calibrated uncertainty or identical random paths between runtimes. Test actual target devices for memory/support/performance. WebGPU may assign some operators to CPU. Keep reference fixtures and graph versions together.

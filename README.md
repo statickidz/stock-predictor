@@ -1,89 +1,156 @@
-# Stock Predictor
+<div align="center">
+  <img src="docs/assets/stock-predictor.svg" alt="Stock Predictor logo" width="76" height="76">
+  <h1>Stock Predictor</h1>
+  <p><strong>A little more perspective on the markets.</strong></p>
+  <p>Explore stocks, ETFs and crypto with real market history<br>and forecasts powered by <a href="https://github.com/shiyu-coder/Kronos">Kronos</a>, right in your browser.</p>
+  <p>
+    <a href="https://astro.build"><img src="https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white" alt="Astro 7"></a>
+    <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-417E38?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-60695D?style=flat-square" alt="MIT license"></a>
+    <a href="https://github.com/shiyu-coder/Kronos"><img src="https://img.shields.io/badge/Powered_by-Kronos-B74629?style=flat-square" alt="Powered by Kronos"></a>
+  </p>
+  <p><a href="#quick-start">Quick start</a> · <a href="#choose-your-model">Models</a> · <a href="#your-device-does-the-work">How it works</a> · <a href="docs/deployment.md">GitHub Pages</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
+</div>
 
-Explore stock, ETF and crypto forecasts with **Kronos running in your browser**. This is a static application for GitHub Pages: visitors need no Python installation, API server or inference service.
+![Stock Predictor with a browser-generated NVIDIA forecast](docs/images/forecast-desktop.jpg)
 
-The interface preserves 130 curated assets, charts, 5/10/20-day horizons, CSV export and all three models. It adds WebAssembly/WebGPU selection, verified model caching, cancellation and local JSON import.
+Stock Predictor is a small research workspace: pick an asset, choose a Kronos model and explore its projected daily closes. **Astro serves the interface. Your browser runs the model.** No inference server, account or paid AI API is required.
 
-## Deploy on GitHub Pages
+## Made for exploring
 
-1. Push this branch to your GitHub repository, then merge into main or manually dispatch from this branch.
-2. In Settings → Pages → Build and deployment, choose GitHub Actions.
-3. Run Actions → GitHub Pages → Run workflow. For a feature-branch deployment, allow that branch in the github-pages environment rules.
+- **130 curated assets.** Search 80 US-listed stocks, 20 ETFs and 30 USD crypto pairs.
+- **Three real models.** Choose Kronos Mini, Small or Base, with the matching tokenizer.
+- **Your device, your forecast.** Run on CPU through WebAssembly or a supported GPU through WebGPU.
+- **A readable path ahead.** Historical prices stay solid; forecasts are dashed. Source dates and model provenance stay visible.
+- **Useful exports.** Inspect daily projections, save CSV results, or import your own history JSON.
+- **Honest failure states.** No invented prices or simulated-inference fallback. Cancel a forecast at any time.
 
-The workflow installs build tools, exports pinned weights, fetches completed daily history, builds dist and deploys it using the Pages artifact/deployment actions. Pushes to main trigger deployment. The daily schedule (06:30 UTC) runs from the default branch and refreshes snapshots. The first build is slower than cached rebuilds. This local branch does not publish anything by itself.
+## Quick start
 
-All URLs work under a repository path such as /stock-predictor/. No weights or datasets are committed to Git. No secrets or backend credentials are embedded in the frontend.
+Use **Node.js 24** and **pnpm 11.25.0**:
 
-**Prices are dated snapshots, not live quotes.** Fetch and observation dates remain visible. A failed refresh can retain a prior real snapshot; missing data is reported explicitly. Before public hosting, use a provider whose terms permit redistribution. The default Yahoo/yfinance integration is intended for personal research; see [third-party notices](THIRD_PARTY_NOTICES.md).
+If needed, install pnpm once with `npm install --global pnpm@11.25.0`.
 
-## Build and preview
+```sh
+pnpm install --frozen-lockfile
+pnpm assets:prepare
+pnpm dev
+```
 
-Python 3.12 and Node 24 are build tools. From the repository root on Windows:
+Open **[localhost:4321](http://127.0.0.1:4321)**. The Node preparation command fetches completed market candles and packages already-prepared models. Subsequent development runs use the generated assets.
 
-    py -3.12 -m venv .venv
-    .\.venv\Scripts\python.exe -m pip install -r requirements-torch.txt
-    .\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-browser.txt -r requirements-dev.txt
-    npm install --global pnpm@11.25.0
-    pnpm install --frozen-lockfile --ignore-scripts
-    .\.venv\Scripts\python.exe scripts/build_pages.py
-    .\.venv\Scripts\python.exe scripts/serve_browser.py
+**One-time model setup:** models are large generated artifacts and are not committed to Git. A clean checkout needs a trusted prepared bundle in `.cache/browser-models/`, or the [optional model exporter](tools/model-export/README.md). Only model maintainers need Python. Visitors and ordinary Astro development, data refresh, build and preview use Node/browser tooling.
 
-Open [localhost:8010](http://127.0.0.1:8010). On macOS/Linux use python3.12 and .venv/bin/python.
+```sh
+pnpm models:check     # Check prepared model inputs
+pnpm assets:offline   # Repackage using cached real snapshots
+pnpm build           # Build the complete static site
+pnpm preview         # Preview the production build
+```
 
-For a faster development build, append --models mini --symbols AAPL NVDA BTC-USD. The --offline-data option reuses prior real snapshots in .cache/pages-history. A full artifact is approximately **673 MB**, including all model and runtime files. The builder uploads only deployable assets and notices.
+For layout work without model downloads, `pnpm build:ui` compiles the frontend alone. It does not produce a complete forecasting deployment. See the [configuration guide](docs/configuration.md) for smaller asset/model subsets.
 
-Test a repository URL with:
+## From history to a forecast
 
-    python scripts/serve_browser.py --port 8020 --base-path /stock-predictor/
+1. Choose **Stocks & ETFs** or **Crypto**, then search by name or symbol.
+2. Pick a **5, 10 or 20-day** horizon, a model and a browser runtime.
+3. Generate a forecast. Inspect the chart and daily results, then export if useful.
 
-Optional Docker hosting serves an already-built dist: docker compose up --build -d. Its nginx container performs no model export or inference.
+The site publishes dated market snapshots. Stocks and ETFs follow US trading sessions; crypto advances by UTC calendar days. Stock snapshots use adjusted prices. The observation and fetch dates are always shown: these are **daily observations, not live quotes**.
 
-## Browser inference
+![Stock Predictor exploring cryptocurrency in the browser](docs/images/forecast-crypto.jpg)
 
-| Model | Parameters | Approximate exported download |
-| :--- | ---: | ---: |
-| Mini · default | 4.1M | 34 MB |
-| Small | 24.7M | 117 MB |
-| Base | 102.3M | 429 MB |
+### A focused market inventory
 
-Runtime files download separately. Selected models download in chunks of at most 16 MiB, checked with SHA-256 and retained in Cache Storage when allowed. Clear downloads under Local data & storage. Denied/full storage does not prevent memory-only inference.
+| Market | Assets | Examples |
+| :--- | ---: | :--- |
+| US-listed stocks | 80 | AAPL, MSFT, NVDA, AMZN |
+| US-listed ETFs | 20 | SPY, QQQ, VTI, GLD |
+| USD crypto pairs | 30 | BTC-USD, ETH-USD, SOL-USD, LINK-USD |
 
-WebAssembly uses one CPU thread and needs no custom isolation headers. WebGPU needs a supported adapter and HTTPS/localhost; some operations may still run on CPU. Model memory use exceeds download size. Start with Mini on phones. Only one model's sessions stay loaded at a time. Selection changes during inference cancel the worker and prevent stale results from updating the chart.
+All quotes use USD. The catalog is curated; arbitrary symbols and international exchange calendars are outside this version.
 
-Forecasts use up to 256 completed candles, three averaged samples, temperature 1.0 and top-p 0.9. Stocks/ETFs follow precomputed US trading sessions; crypto uses UTC calendar days. These are stochastic research estimates, with no accuracy guarantee or calibrated confidence interval.
+## Choose your model
 
-## Local data import
+| Model | Parameters | Tokenizer | Approximate model download |
+| :--- | ---: | :--- | ---: |
+| [Kronos Mini](https://huggingface.co/NeoQuasar/Kronos-mini) · default | 4.1M | Tokenizer-2k | 34 MB |
+| [Kronos Small](https://huggingface.co/NeoQuasar/Kronos-small) | 24.7M | Tokenizer-base | 117 MB |
+| [Kronos Base](https://huggingface.co/NeoQuasar/Kronos-base) | 102.3M | Tokenizer-base | 429 MB |
 
-Under Local data & storage choose a JSON file smaller than 2 MB. Files stay on this device. The shape is:
+Runtime files download separately. Only the selected model loads. Downloads are verified with SHA-256 and can be cached locally when browser storage allows it. **Local data & storage → Clear downloaded models** removes this site's model cache.
 
-    {
-      "label": "My research data",
-      "kind": "stock",
-      "candles": [
-        {"date":"2026-10-30","open":100,"high":103,"low":99,"close":102,"volume":10000}
-      ],
-      "future_dates": ["2026-11-02"]
-    }
+Each forecast uses up to **256 completed candles**, averages **three samples**, and uses temperature `1.0` and top-p `0.9`. Larger models use more memory and do not guarantee better predictions. Start with Mini on phones. Results are stochastic; rerunning a forecast may change it.
 
-This illustrates individual records: a usable file needs **64+ valid daily candles and 20 future dates** from the correct trading calendar. Use kind crypto for crypto. Dates must increase strictly in UTC YYYY-MM-DD format. Prices use USD. Synthetic parity fixtures are never production data or fallback forecasts.
+<details>
+<summary><strong>A compact workspace on mobile, too</strong></summary>
+<br>
+<img src="docs/images/mobile-controls.jpg" alt="Stock Predictor browser model and forecast controls on mobile" width="310">
+<img src="docs/images/mobile-forecast.jpg" alt="Stock Predictor browser-generated chart and forecast on mobile" width="310">
+</details>
 
-## Verify
+## Your device does the work
 
-    pnpm test
-    python -m pytest -q
-    pnpm exec playwright install chromium
-    # Start the preview on port 8020 with /stock-predictor/, then:
-    node tests/browser-smoke.mjs
+The interface is built with **Astro, plain browser modules and ONNX Runtime Web**. Inference runs in a Web Worker, keeping the page responsive. WebAssembly uses a single CPU thread. WebGPU needs a compatible browser/adapter and HTTPS or localhost; some graph operations may still run on CPU.
 
-BROWSER_CHANNEL=msedge uses installed Edge; SMOKE_WEBGPU=1 checks GPU parity. The browser test checks all three models against Python logits/closes, a 20-day forecast, CSV, cancellation, cache clearing, invalid input and mobile width at a repository subpath.
+Only one model's sessions stay loaded at a time. Changing selection during a forecast cancels the worker, and obsolete results never update the chart. Storage being full or unavailable does not prevent a verified in-memory download. Model caching is not a complete offline installer.
 
-## Source map
+### Bring your own history
 
-- app/static: production interface, chart, data contracts, worker and verified cache.
-- scripts/build_pages.py: static packaging and market snapshots.
-- scripts/export_browser.py: pinned model export and parity fixtures.
-- .github/workflows/pages.yml: build, refresh and deployment.
-- vendor/kronos: unchanged upstream architecture and MIT license.
-- Other Python modules/tests retain the original backend and supply catalog/calendar/market tooling. They are absent from the Pages runtime.
+Under **Local data & storage**, import a JSON file containing at least 64 completed OHLCV candles and 20 future dates from the appropriate trading calendar. Files stay on your device.
 
-See [deployment](docs/deployment.md), [architecture](docs/architecture.md), [configuration](docs/configuration.md) and [verification](docs/verification.md). Built on [Kronos](https://github.com/shiyu-coder/Kronos) and ONNX Runtime Web. Application code is MIT licensed; models, data and dependencies retain their respective terms.
+Each candle contains `date`, `open`, `high`, `low`, `close` and `volume`. The top-level object contains `label`, `kind` (`stock` or `crypto`), `candles` and `future_dates`. Use strictly increasing UTC `YYYY-MM-DD` dates and USD prices; maximum file size is 2 MB. See [configuration](docs/configuration.md) for an example.
+
+## Made for static hosting
+
+The production output is `dist/`: HTML, CSS, JavaScript, runtime assets, verified model chunks and market snapshots. **No Python or Node process runs on the host.** GitHub Pages and ordinary HTTPS static hosts can serve it.
+
+For GitHub Pages, choose **GitHub Actions** in repository Settings → Pages. On the first run, enable **prepare_models** in the workflow if no prepared model cache exists. This opt-in maintenance job exports models separately; the website build and daily data refresh use Node. [Deployment instructions](docs/deployment.md) cover branch rules, custom domains and cache bootstrap.
+
+A full three-model artifact is around 673 MB. Models are split into 16 MiB chunks and remain outside the application JavaScript bundle. Optional Docker hosting serves a previously built `dist` with nginx.
+
+**Market-data rights matter.** The Yahoo Finance integration is intended for personal research. Public/commercial snapshot publication needs a provider with appropriate redistribution rights. The code license does not grant data rights. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Under the hood
+
+```text
+src/
+  pages/          Astro routes
+  layouts/        Document shell
+  components/     Forecast workspace
+  lib/            Chart, data, state and inference helpers
+  workers/        Browser model execution
+  styles/         Shared visual system
+data/             Catalog, model profiles and versioned exchange calendar
+scripts/          Node data preparation, packaging and verification
+tools/model-export/  Optional PyTorch → ONNX maintenance tooling
+tests/            Node contracts and real-browser verification
+```
+
+| Guide | What you will find |
+| :--- | :--- |
+| [Architecture](docs/architecture.md) | Astro components, browser worker and asset/data boundaries |
+| [Configuration](docs/configuration.md) | Asset subsets, base paths, imports and model inputs |
+| [Deployment](docs/deployment.md) | GitHub Pages, model bootstrap, static hosts and Docker |
+| [Troubleshooting](docs/troubleshooting.md) | Downloads, snapshots, browser support and missing assets |
+| [Verification](docs/verification.md) | Unit contracts, export parity and browser checks |
+| [Contributing](CONTRIBUTING.md) | Node development and maintenance boundaries |
+| [Security](SECURITY.md) | Local inputs, public artifacts and verified downloads |
+
+```sh
+pnpm test
+pnpm build
+pnpm exec playwright install chromium
+# Start pnpm preview in another terminal, then:
+pnpm test:browser
+```
+
+Unit tests run without model downloads or market requests. The browser suite checks all three real models against Python reference logits/closes, plus forecasts, CSV, cancellation, cache handling, imports and mobile layout. See [verification](docs/verification.md) for repository-path and GPU checks.
+
+## Credit & license
+
+Stock Predictor is an independent interface built around **[Kronos by ShiYu and contributors](https://github.com/shiyu-coder/Kronos)**, with weights from [NeoQuasar](https://huggingface.co/NeoQuasar), browser execution through [ONNX Runtime](https://onnxruntime.ai/), and market preparation through [yahoo-finance2](https://github.com/gadicc/yahoo-finance2). Upstream licenses and pinned model provenance are preserved.
+
+Application code is available under the [MIT license](LICENSE). Models, market data and dependencies retain their own terms; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+**For research and exploration.** Forecasts are estimates, not financial advice. Stock Predictor provides no accuracy guarantee, calibrated confidence interval or trading execution.

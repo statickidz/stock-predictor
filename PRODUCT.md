@@ -1,39 +1,24 @@
 # Stock Predictor — Product
 
-## Platform
+## Platform and stack
 
-web
+A browser-first web application built with Astro, plain browser modules and ONNX Runtime Web. Node prepares data/assets and builds the static website. Optional Python tooling converts upstream models; no Python API or inference server exists.
 
-## Stack
+## Users and purpose
 
-Stock Predictor is a static HTML/CSS/JavaScript application with ONNX Runtime Web executing Kronos in a browser worker. Python/PyTorch run only during export, snapshot generation and reference testing.
+People exploring daily stock, ETF and cryptocurrency research forecasts on their own device, from GitHub Pages or another static host.
 
-## Users
+## Capabilities and constraints
 
-People exploring daily stock, ETF and cryptocurrency research forecasts in their own browser, from GitHub Pages or another static host.
+The curated catalog includes 80 US equities,20 ETFs and30 USD crypto pairs. Daily snapshots,5/10/20-session horizons, price chart and CSV. Actual model inference only; no accuracy claims or calibrated confidence intervals.
 
-## Product Purpose
+Kronos Mini (default), Small and Base execute in browser workers with matching tokenizers. One model's sessions remain loaded at a time. Runtime choice offers single-threaded WebAssembly or supported WebGPU. Selection changes cancel running forecasts; stale results cannot update the chart.
 
-Explore real daily market data and generate research forecasts using the upstream Kronos model.
+Published history uses completed market candles and a versioned exchange calendar. Fetch/observation dates remain visible. Imported JSON stays on the device and supplies its own future dates. Browser caching is optional and verified.
 
-## Operating Context
+## Principles
 
-HTTPS static hosting and localhost preview. Visitors download the selected model on first use; verified chunks can persist in browser storage. Python/Node are build-time dependencies only.
-
-## Capabilities and Constraints
-
-Supported US stocks/ETFs and USD crypto pairs. Daily candles, 5/10/20-candle horizons, price chart and CSV. Actual market data and inference only. Predictions are estimates; no claimed accuracy or calibrated confidence intervals.
-
-The expanded inventory contains 80 US-listed equities, 20 US-listed ETFs, and 30 USD crypto pairs. The search spans the selected category, and displayed inventory counts derive from the backend catalog. All stock/ETF instruments use the existing US-session calendar; crypto uses UTC calendar days.
-
-Model picker: Kronos Mini (default), Small and Base, with matching pinned tokenizers. One model's sessions remain loaded at a time. Runtime selection offers single-threaded WebAssembly or supported WebGPU. Dated market snapshots refresh through the Pages build; imported JSON remains on the device. Selection changes cancel running forecasts; exports identify the model and source dates.
-
-## Evidence on Hand
-
-Open-source Kronos is the inference mechanism. See [architecture](docs/architecture.md) for implementation boundaries, [verification](docs/verification.md) for exercised scope, and [DESIGN.md](DESIGN.md) for the interface system. No trading performance claims are supplied.
-
-## Product Principles
-
-- Keep input, observation dates and forecast dates visible.
-- Surface provider and model failures honestly.
-- Use the same application locally and on a server.
+- Keep observations, forecast dates and model provenance visible.
+- Surface data/model failures honestly.
+- Make static browser deployment the single application architecture.
+- Preserve the restrained financial workspace documented in DESIGN.md.

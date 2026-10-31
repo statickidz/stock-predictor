@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSelectionState, toCsv, historyForRange } from '../app/static/state.js';
+import { createSelectionState, toCsv, historyForRange } from '../src/lib/state.js';
 
 test('obsolete history and job responses cannot commit after a selection change', () => {
   const state = createSelectionState();

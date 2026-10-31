@@ -1,0 +1,35 @@
+[
+  {
+    "key": "mini",
+    "name": "Kronos Mini",
+    "model_id": "NeoQuasar/Kronos-mini",
+    "tokenizer_id": "NeoQuasar/Kronos-Tokenizer-2k",
+    "max_context": 2048,
+    "parameters": "4.1M",
+    "description": "Smallest download and memory footprint.",
+    "revision": "f4e68697d9d5aed55cef5c96aabc3376bcad9f81",
+    "tokenizer_revision": "26966d0035065a0cae0ebad7af8ece35bc1fb51c"
+  },
+  {
+    "key": "small",
+    "name": "Kronos Small",
+    "model_id": "NeoQuasar/Kronos-small",
+    "tokenizer_id": "NeoQuasar/Kronos-Tokenizer-base",
+    "max_context": 512,
+    "parameters": "24.7M",
+    "description": "A balanced model for everyday exploration.",
+    "revision": "901c26c1332695a2a8f243eb2f37243a37bea320",
+    "tokenizer_revision": "0e0117387f39004a9016484a186a908917e22426"
+  },
+  {
+    "key": "base",
+    "name": "Kronos Base",
+    "model_id": "NeoQuasar/Kronos-base",
+    "tokenizer_id": "NeoQuasar/Kronos-Tokenizer-base",
+    "max_context": 512,
+    "parameters": "102.3M",
+    "description": "Larger download and memory footprint.",
+    "revision": "2b554741eca47781b64468546e77fef3e85130e6",
+    "tokenizer_revision": "0e0117387f39004a9016484a186a908917e22426"
+  }
+]

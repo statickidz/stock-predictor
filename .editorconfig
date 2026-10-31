@@ -17,7 +17,7 @@ indent_size = 4
 [*.md]
 trim_trailing_whitespace = false
 
-[vendor/**]
+[tools/model-export/vendor/**]
 trim_trailing_whitespace = false
 insert_final_newline = unset
 end_of_line = unset

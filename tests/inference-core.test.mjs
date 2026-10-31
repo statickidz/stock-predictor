@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {prepare, sample, stamp} from '../app/static/inference-core.js';
+import {prepare, sample, stamp} from '../src/lib/inference-core.js';
 
 const input = () => ({
   candles: [
