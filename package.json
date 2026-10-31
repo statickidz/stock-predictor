@@ -1,0 +1,9 @@
+{
+  "name": "stock-predictor",
+  "version": "0.1.0",
+  "description": "Local-first stock, ETF and crypto forecasting powered by Kronos.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/frontend.test.mjs" }
+}

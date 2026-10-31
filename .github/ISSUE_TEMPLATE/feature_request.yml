@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest a focused improvement to Stock Predictor.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Explain what you want to accomplish and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Describe the behavior you would like, including alternatives considered.
+    validations:
+      required: true
