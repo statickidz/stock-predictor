@@ -2,102 +2,63 @@
   <img src="docs/assets/stock-predictor.svg" alt="Stock Predictor logo" width="76" height="76">
   <h1>Stock Predictor</h1>
   <p><strong>A little more perspective on the markets.</strong></p>
-  <p>Explore stocks, ETFs and crypto with real market history<br>and local forecasts powered by <a href="https://github.com/shiyu-coder/Kronos">Kronos</a>.</p>
+  <p>Explore stocks, ETFs and crypto with real market history<br>and forecasts powered by <a href="https://github.com/shiyu-coder/Kronos">Kronos</a>, right in your browser.</p>
   <p>
-    <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12"></a>
+    <a href="https://astro.build"><img src="https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white" alt="Astro 7"></a>
+    <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-417E38?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-60695D?style=flat-square" alt="MIT license"></a>
     <a href="https://github.com/shiyu-coder/Kronos"><img src="https://img.shields.io/badge/Powered_by-Kronos-B74629?style=flat-square" alt="Powered by Kronos"></a>
   </p>
-  <p><a href="#quick-start">Quick start</a> · <a href="#run-with-docker">Docker</a> · <a href="#choose-your-model">Models</a> · <a href="docs/deployment.md">Deployment</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
+  <p><a href="#quick-start">Quick start</a> · <a href="#choose-your-model">Models</a> · <a href="#your-device-does-the-work">How it works</a> · <a href="docs/deployment.md">GitHub Pages</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
-![Stock Predictor showing NVIDIA (NVDA) with a 20-trading-day Kronos Small forecast](docs/images/forecast-desktop.jpg)
+![Stock Predictor with a browser-generated NVIDIA forecast](docs/images/forecast-desktop.jpg)
 
-Stock Predictor is a small, self-hostable research app: pick an asset, choose a Kronos model and explore its projected daily closes. A single Python service serves the interface and runs inference on your machine. No frontend build step or paid data API key is required.
+Stock Predictor is a small research workspace: pick an asset, choose a Kronos model and explore its projected daily closes. **Astro serves the interface. Your browser runs the model.** No inference server, account or paid AI API is required.
 
 ## Made for exploring
 
 - **130 curated assets.** Search 80 US-listed stocks, 20 ETFs and 30 USD crypto pairs.
-- **Three real models.** Switch between Kronos Mini, Small and Base, with their matching tokenizers.
-- **Readable forecasts.** Observed prices stay solid; projected prices are dashed. Dates and model provenance stay visible.
-- **Useful exports.** Inspect the projected closes or download a CSV with the selected model ID.
-- **Local first.** Run on CPU, optionally use NVIDIA CUDA, or package the same application with Docker.
-- **Honest failure states.** Data and model errors are surfaced. The production app has no invented-price or simulated-inference fallback.
+- **Three real models.** Choose Kronos Mini, Small or Base, with the matching tokenizer.
+- **Your device, your forecast.** Run on CPU through WebAssembly or a supported GPU through WebGPU.
+- **A readable path ahead.** Historical prices stay solid; forecasts are dashed. Source dates and model provenance stay visible.
+- **Useful exports.** Inspect daily projections, save CSV results, or import your own history JSON.
+- **Honest failure states.** No invented prices or simulated-inference fallback. Cancel a forecast at any time.
 
 ## Quick start
 
-Clone or download this repository and open a terminal in its root folder. Choose Docker or a local Python installation.
+Use **Node.js 24** and **pnpm 11.25.0**:
 
-### Run with Docker
-
-Install Docker with Compose support and start the Docker engine. On Windows or macOS, Docker Desktop provides both; use Linux containers on Windows. Python and Node do not need to be installed on the host.
-
-Build the image and start the app in the background:
+If needed, install pnpm once with `npm install --global pnpm@11.25.0`.
 
 ```sh
-docker compose up --build -d
+pnpm install --frozen-lockfile
+pnpm assets:prepare
+pnpm dev
 ```
 
-Open **[localhost:8000](http://127.0.0.1:8000)**. The first image build installs the CPU dependencies. When you generate a forecast, the selected model and tokenizer download on first use; allow a few minutes and keep internet access available for downloads and market history.
+Open **[localhost:4321](http://127.0.0.1:4321)**. The Node preparation command fetches completed market candles and packages already-prepared models. Subsequent development runs use the generated assets.
 
-Check the container status or follow its logs:
+**One-time model setup:** models are large generated artifacts and are not committed to Git. A clean checkout needs a trusted prepared bundle in `.cache/browser-models/`, or the [optional model exporter](tools/model-export/README.md). Only model maintainers need Python. Visitors and ordinary Astro development, data refresh, build and preview use Node/browser tooling.
 
 ```sh
-docker compose ps
-docker compose logs -f stock-predictor
+pnpm models:check     # Check prepared model inputs
+pnpm assets:offline   # Repackage using cached real snapshots
+pnpm build           # Build the complete static site
+pnpm preview         # Preview the production build
 ```
 
-Press `Ctrl+C` to leave the log view; the app keeps running. To stop and remove the container:
-
-```sh
-docker compose down
-```
-
-Start it again with `docker compose up -d`. After updating the source, rebuild with `docker compose up --build -d`.
-
-Downloaded models and market history persist in the `model-cache` named volume, mounted at `/data/cache`. `docker compose down` preserves this cache. Jobs are held in memory and disappear when the app restarts.
-
-If port 8000 is already in use, create or edit `.env` in the repository root, set `KRONOS_PORT=8001`, and rerun the startup command. Then open [localhost:8001](http://127.0.0.1:8001). Compose binds the published port to `127.0.0.1` by default. The included image runs on **CPU**; see the [deployment guide](docs/deployment.md) for remote access, authentication and GPU considerations.
-
-### Run with Python
-
-Install **Python 3.12**, then run the command for your platform from the repository root.
-
-**Windows · PowerShell**
-
-```powershell
-.\scripts\start.ps1 -Setup
-```
-
-**macOS / Linux**
-
-```sh
-sh scripts/start.sh --setup
-```
-
-Open **[localhost:8000](http://127.0.0.1:8000)**. Setup creates a project-local environment and installs CPU PyTorch. The first forecast with each model downloads its weights and tokenizer from Hugging Face; subsequent runs reuse the cache. Installation and first inference can take a few minutes.
-
-For later starts, omit `-Setup` / `--setup`:
-
-```powershell
-.\scripts\start.ps1
-```
-
-```sh
-sh scripts/start.sh
-```
-
-If PowerShell blocks scripts or your platform has no CPU-index wheel, use the [manual installation steps](docs/troubleshooting.md#installation). Python is the only runtime needed for the website; Node is optional for development tests.
+For layout work without model downloads, `pnpm build:ui` compiles the frontend alone. It does not produce a complete forecasting deployment. See the [configuration guide](docs/configuration.md) for smaller asset/model subsets.
 
 ## From history to a forecast
 
-1. Choose **Stocks & ETFs** or **Crypto**, then search by symbol or name.
-2. Pick a **5, 10 or 20-day** horizon and a model.
-3. Generate a forecast. Review the chart, projected closes and model ID, then export if useful.
+1. Choose **Stocks & ETFs** or **Crypto**, then search by name or symbol.
+2. Pick a **5, 10 or 20-day** horizon, a model and a browser runtime.
+3. Generate a forecast. Inspect the chart and daily results, then export if useful.
 
-Stocks and ETFs advance by US trading sessions; crypto advances by UTC calendar days. History uses completed daily candles, with the latest observation date shown in the interface. Prices are **daily observations, not live quotes**. Stock history is adjusted.
+The site publishes dated market snapshots. Stocks and ETFs follow US trading sessions; crypto advances by UTC calendar days. Stock snapshots use adjusted prices. The observation and fetch dates are always shown: these are **daily observations, not live quotes**.
 
-![Stock Predictor exploring a cryptocurrency forecast](docs/images/forecast-crypto.jpg)
+![Stock Predictor exploring cryptocurrency in the browser](docs/images/forecast-crypto.jpg)
 
 ### A focused market inventory
 
@@ -107,69 +68,89 @@ Stocks and ETFs advance by US trading sessions; crypto advances by UTC calendar 
 | US-listed ETFs | 20 | SPY, QQQ, VTI, GLD |
 | USD crypto pairs | 30 | BTC-USD, ETH-USD, SOL-USD, LINK-USD |
 
-All assets use USD quotes. ETFs span equities, sectors, bonds and metals. The catalog is curated: arbitrary tickers and international exchange calendars are outside this version. [Recheck provider availability](docs/verification.md#live-catalog-check) when extending it.
+All quotes use USD. The catalog is curated; arbitrary symbols and international exchange calendars are outside this version.
 
 ## Choose your model
 
-| Model | Parameters | Tokenizer | Upstream context limit |
+| Model | Parameters | Tokenizer | Approximate model download |
 | :--- | ---: | :--- | ---: |
-| [Kronos Mini](https://huggingface.co/NeoQuasar/Kronos-mini) | 4.1M | Tokenizer-2k | 2,048 |
-| [Kronos Small](https://huggingface.co/NeoQuasar/Kronos-small) · default | 24.7M | Tokenizer-base | 512 |
-| [Kronos Base](https://huggingface.co/NeoQuasar/Kronos-base) | 102.3M | Tokenizer-base | 512 |
+| [Kronos Mini](https://huggingface.co/NeoQuasar/Kronos-mini) · default | 4.1M | Tokenizer-2k | 34 MB |
+| [Kronos Small](https://huggingface.co/NeoQuasar/Kronos-small) | 24.7M | Tokenizer-base | 117 MB |
+| [Kronos Base](https://huggingface.co/NeoQuasar/Kronos-base) | 102.3M | Tokenizer-base | 429 MB |
 
-Stock Predictor uses up to **256 completed candles** and averages **three samples**, with temperature `1.0` and top-p `0.9`. Only one predictor stays loaded at a time. Larger models use more memory and do not guarantee better predictions. Results are stochastic; rerunning a forecast may change it.
+Runtime files download separately. Only the selected model loads. Downloads are verified with SHA-256 and can be cached locally when browser storage allows it. **Local data & storage → Clear downloaded models** removes this site's model cache.
+
+Each forecast uses up to **256 completed candles**, averages **three samples**, and uses temperature `1.0` and top-p `0.9`. Larger models use more memory and do not guarantee better predictions. Start with Mini on phones. Results are stochastic; rerunning a forecast may change it.
 
 <details>
 <summary><strong>A compact workspace on mobile, too</strong></summary>
 <br>
-<img src="docs/images/mobile-controls.jpg" alt="Stock Predictor asset, horizon and model controls on a narrow screen" width="310">
-<img src="docs/images/mobile-forecast.jpg" alt="Stock Predictor forecast chart and results on a narrow screen" width="310">
+<img src="docs/images/mobile-controls.jpg" alt="Stock Predictor browser model and forecast controls on mobile" width="310">
+<img src="docs/images/mobile-forecast.jpg" alt="Stock Predictor browser-generated chart and forecast on mobile" width="310">
 </details>
 
-## Your machine. Your server.
+## Your device does the work
 
-Defaults work locally. To customize them, copy [`.env.example`](.env.example) to `.env`:
+The interface is built with **Astro, plain browser modules and ONNX Runtime Web**. Inference runs in a Web Worker, keeping the page responsive. WebAssembly uses a single CPU thread. WebGPU needs a compatible browser/adapter and HTTPS or localhost; some graph operations may still run on CPU.
 
-```dotenv
-KRONOS_DEVICE=auto
-KRONOS_MODEL=NeoQuasar/Kronos-small
-KRONOS_PORT=8000
-```
+Only one model's sessions stay loaded at a time. Changing selection during a forecast cancels the worker, and obsolete results never update the chart. Storage being full or unavailable does not prevent a verified in-memory download. Model caching is not a complete offline installer.
 
-The `KRONOS_*` names are retained for compatibility. Read the [configuration guide](docs/configuration.md) for GPU setup, cache paths, model overrides and the optional API token.
+### Bring your own history
 
-The [Docker quick start](#run-with-docker) packages the same application with CPU dependencies and a persistent model cache. For remote access, use an SSH tunnel or a TLS reverse proxy and configure an access token. Keep one application worker: models and forecast jobs live in one process. See [deployment and runtime limits](docs/deployment.md).
+Under **Local data & storage**, import a JSON file containing at least 64 completed OHLCV candles and 20 future dates from the appropriate trading calendar. Files stay on your device.
 
-**Market-data rights matter.** The default Yahoo Finance / yfinance integration is intended for personal research. Public or commercial hosting needs a provider with appropriate rights. The code license does not grant rights to redistribute market data or model weights. See [third-party notices](THIRD_PARTY_NOTICES.md).
+Each candle contains `date`, `open`, `high`, `low`, `close` and `volume`. The top-level object contains `label`, `kind` (`stock` or `crypto`), `candles` and `future_dates`. Use strictly increasing UTC `YYYY-MM-DD` dates and USD prices; maximum file size is 2 MB. See [configuration](docs/configuration.md) for an example.
+
+## Made for static hosting
+
+The production output is `dist/`: HTML, CSS, JavaScript, runtime assets, verified model chunks and market snapshots. **No Python or Node process runs on the host.** GitHub Pages and ordinary HTTPS static hosts can serve it.
+
+For GitHub Pages, choose **GitHub Actions** in repository Settings → Pages. On the first run, enable **prepare_models** in the workflow if no prepared model cache exists. This opt-in maintenance job exports models separately; the website build and daily data refresh use Node. [Deployment instructions](docs/deployment.md) cover branch rules, custom domains and cache bootstrap.
+
+A full three-model artifact is around 673 MB. Models are split into 16 MiB chunks and remain outside the application JavaScript bundle. Optional Docker hosting serves a previously built `dist` with nginx.
+
+**Market-data rights matter.** The Yahoo Finance integration is intended for personal research. Public/commercial snapshot publication needs a provider with appropriate redistribution rights. The code license does not grant data rights. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Under the hood
 
-**FastAPI + PyTorch + vanilla HTML/CSS/JavaScript.** No Node runtime in production, no external chart service, and no model weights committed to the repository.
+```text
+src/
+  pages/          Astro routes
+  layouts/        Document shell
+  components/     Forecast workspace
+  lib/            Chart, data, state and inference helpers
+  workers/        Browser model execution
+  styles/         Shared visual system
+data/             Catalog, model profiles and versioned exchange calendar
+scripts/          Node data preparation, packaging and verification
+tools/model-export/  Optional PyTorch → ONNX maintenance tooling
+tests/            Node contracts and real-browser verification
+```
 
 | Guide | What you will find |
 | :--- | :--- |
-| [Architecture & API](docs/architecture.md) | Data flow, module boundaries, endpoints and upstream provenance |
-| [Configuration](docs/configuration.md) | Environment settings, model selection and CUDA |
-| [Deployment](docs/deployment.md) | Docker, remote access, cache persistence and process limits |
-| [Troubleshooting](docs/troubleshooting.md) | Installation, downloads, provider errors and expired jobs |
-| [Verification](docs/verification.md) | Automated checks, real inference checks and tested scope |
-| [Contributing](CONTRIBUTING.md) | Development setup and deterministic tests |
-| [Security](SECURITY.md) | Deployment scope and responsible reporting |
-
-The automated suite runs without model downloads or live market requests:
+| [Architecture](docs/architecture.md) | Astro components, browser worker and asset/data boundaries |
+| [Configuration](docs/configuration.md) | Asset subsets, base paths, imports and model inputs |
+| [Deployment](docs/deployment.md) | GitHub Pages, model bootstrap, static hosts and Docker |
+| [Troubleshooting](docs/troubleshooting.md) | Downloads, snapshots, browser support and missing assets |
+| [Verification](docs/verification.md) | Unit contracts, export parity and browser checks |
+| [Contributing](CONTRIBUTING.md) | Node development and maintenance boundaries |
+| [Security](SECURITY.md) | Local inputs, public artifacts and verified downloads |
 
 ```sh
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
-node --test tests/frontend.test.mjs
+pnpm test
+pnpm build
+pnpm exec playwright install chromium
+# Start pnpm preview in another terminal, then:
+pnpm test:browser
 ```
 
-Run these inside your Python 3.12 environment. GitHub Actions is configured for Python tests on Windows and Ubuntu, plus Node 24 frontend tests.
+Unit tests run without model downloads or market requests. The browser suite checks all three real models against Python reference logits/closes, plus forecasts, CSV, cancellation, cache handling, imports and mobile layout. See [verification](docs/verification.md) for repository-path and GPU checks.
 
 ## Credit & license
 
-Stock Predictor is an independent interface built around **[Kronos by ShiYu and contributors](https://github.com/shiyu-coder/Kronos)**. The upstream model source is vendored with its original MIT license; weights are fetched separately from the [NeoQuasar repositories](https://huggingface.co/NeoQuasar). Market history is supplied through [yfinance](https://ranaroussi.github.io/yfinance/).
+Stock Predictor is an independent interface built around **[Kronos by ShiYu and contributors](https://github.com/shiyu-coder/Kronos)**, with weights from [NeoQuasar](https://huggingface.co/NeoQuasar), browser execution through [ONNX Runtime](https://onnxruntime.ai/), and market preparation through [yahoo-finance2](https://github.com/gadicc/yahoo-finance2). Upstream licenses and pinned model provenance are preserved.
 
-Application code is available under the [MIT license](LICENSE). Upstream source, weights, data and dependencies retain their own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Application code is available under the [MIT license](LICENSE). Models, market data and dependencies retain their own terms; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
 **For research and exploration.** Forecasts are estimates, not financial advice. Stock Predictor provides no accuracy guarantee, calibrated confidence interval or trading execution.

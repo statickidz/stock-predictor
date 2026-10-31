@@ -22,3 +22,4 @@
 
 # Keep checked-in upstream bytes intact and exclude them from language totals.
 vendor/** -text !eol linguist-vendored=true
+tools/model-export/vendor/** -text !eol linguist-vendored=true

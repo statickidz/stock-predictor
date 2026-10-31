@@ -1,0 +1,5 @@
+Stock Predictor's XNYS session dataset was generated from exchange_calendars
+4.13.2 (Apache License 2.0), https://github.com/gerrymanoim/exchange_calendars.
+The generated subset covers 2020 through 2035 and includes UTC close times.
+Generated 2026-10-31; dataset provenance is embedded in XNYS.json.
+This generated dataset is distinct from the upstream package source.

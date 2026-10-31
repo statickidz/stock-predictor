@@ -1,4 +1,15 @@
 .venv/
+.venv-models/
+public/data/
+public/models/
+public/runtime/
+public/*LICENSE*
+public/THIRD_PARTY_NOTICES.md
+public/*NOTICE*
+.astro/
+dist/
+node_modules/
+docs/superpowers/
 .cache/
 __pycache__/
 .pytest_cache/
@@ -9,7 +20,6 @@ artifacts/
 .local/
 .impeccable/
 .env.*
-!.env.example
 .ruff_cache/
 .mypy_cache/
 .coverage

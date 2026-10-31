@@ -1,50 +1,13 @@
-# Contributing to Stock Predictor
+# Contributing
 
-Keep changes focused and describe the problem they solve. For larger changes, open an issue first to discuss scope. Include reproduction steps for bugs and screenshots for visible interface changes.
+Stock Predictor is an Astro static app. Use Node24/pnpm11.25.0 and follow README's prepared-assets setup. Ordinary development, preview, tests, data refresh and website builds use Node only. There is no Python application server.
 
-## Run the full app
+Keep src/pages/layouts/components for document/UI structure, src/lib for browser logic and src/workers for inference. Node packaging/market code belongs under scripts and curated metadata/calendar under data. Preserve the visual system in DESIGN.md, accessible chart controls, CSV provenance, explicit dates, cancellation and stale-result protection.
 
-Use Python 3.12. From the repository root, run:
+Run pnpm test and pnpm build:ui for frontend work. Before merging deployment/inference changes, prepare real assets, build the full artifact and run pnpm test:browser under a repository prefix. Validate all models and both supported runtimes where possible. Preserve lazy model downloads and single-threaded WASM compatibility with Pages.
 
-```powershell
-# Windows PowerShell
-.\scripts\start.ps1 -Setup
-```
+tools/model-export is optional maintainer tooling, not a dependency to pull into the app. Keep vendored architecture unchanged, pin sources and validate regenerated graphs/reference fixtures. Do not commit generated model/data/runtime assets, private datasets, .env, local environments or caches.
 
-```sh
-# macOS / Linux
-sh scripts/start.sh --setup
-```
+Node data logic must preserve adjusted prices, complete-candle filtering, early closes, holiday sessions and explicit calendar bounds. Provider failures may retain prior real snapshots but must never fabricate history. Cache failures must not prevent verified in-memory inference.
 
-These scripts install the application and CPU PyTorch. See the [README](README.md) for platform alternatives and subsequent starts. Real forecasts fetch market history and download model weights on first use.
-
-Read [architecture](docs/architecture.md) for the provider, predictor, and job boundaries, and [configuration](docs/configuration.md) before changing runtime settings.
-
-## Run tests without PyTorch
-
-Node 24 is needed only for frontend tests; no npm dependencies or build step are required. Python tests use provider and predictor fixtures, so they need neither PyTorch nor downloaded weights. In a fresh checkout:
-
-```powershell
-# Windows PowerShell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest -q
-node --test tests/frontend.test.mjs
-```
-
-```sh
-# macOS / Linux
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m pytest -q
-node --test tests/frontend.test.mjs
-```
-
-Dependency installation needs network access. Keep the tests themselves deterministic: inject fixtures at the market-provider and predictor boundaries, avoid live market requests, and never require weights or GPU hardware. Document any separately performed real-inference checks in the pull request.
-
-## Source and data hygiene
-
-- Keep upstream source under `vendor/` unmodified and retain its licenses and notices. Discuss an upstream refresh separately; preserve provenance in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- Exclude `.env`, tokens, downloaded weights, caches, and personal artifacts from contributions.
-- Match the surrounding code and `.editorconfig`; update relevant tests and documentation when behavior changes.
-- Report security issues using [SECURITY.md](SECURITY.md), rather than a public issue.
+Building or committing does not authorize pushing, publishing data or changing repository settings. Review redistribution rights before public snapshot publication.

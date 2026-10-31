@@ -2,14 +2,5 @@ services:
   stock-predictor:
     build: .
     ports:
-      - "127.0.0.1:${KRONOS_PORT:-8000}:8000"
-    environment:
-      KRONOS_DEVICE: cpu
-      KRONOS_API_TOKEN: ${KRONOS_API_TOKEN:-}
-      KRONOS_CPU_THREADS: ${KRONOS_CPU_THREADS:-4}
-    volumes:
-      - model-cache:/data/cache
+      - "127.0.0.1:8000:80"
     restart: unless-stopped
-    init: true
-volumes:
-  model-cache:

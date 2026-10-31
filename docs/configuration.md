@@ -1,44 +1,33 @@
 # Configuration
 
-Copy [`.env.example`](../.env.example) to `.env` in the repository root. The application loads it automatically; existing environment variables take precedence. The `KRONOS_*` prefix is retained for compatibility with the original setup.
+## Node commands
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `KRONOS_HOST` | `127.0.0.1` | Bind address for `python -m app` |
-| `KRONOS_PORT` | `8000` | HTTP port |
-| `KRONOS_DEVICE` | `auto` | Automatic CUDA/CPU selection, `cpu`, or `cuda:0` |
-| `KRONOS_CPU_THREADS` | `4` | PyTorch CPU thread budget, at least 1 |
-| `KRONOS_CACHE_DIR` | project `.cache` | Model and market-history cache |
-| `KRONOS_MODEL` | `NeoQuasar/Kronos-small` | Default model repository or trusted local path |
-| `KRONOS_TOKENIZER` | Matching preset | Optional tokenizer override |
-| `KRONOS_API_TOKEN` | Empty | Optional bearer token protecting every `/api/*` route |
+- pnpm dev starts Astro at localhost:4321.
+- pnpm assets:prepare refreshes real market snapshots and packages prepared model inputs.
+- pnpm assets:offline packages existing real snapshots without provider access.
+- pnpm build prepares cached assets, compiles Astro and checks the complete artifact.
+- pnpm build:ui compiles UI only; useful for frontend CI without model assets.
+- pnpm preview serves the production artifact.
+- pnpm models:check checks that prepared exports match the pinned catalog.
 
-Start scripts change to the project root, so relative paths such as `.cache` resolve there. Command-line `--host` and `--port` override the corresponding environment settings. On Windows, the start script also accepts `-Port 8001`.
+For smaller development assets:
 
-## Models
+    pnpm assets:prepare --models mini --symbols AAPL NVDA BTC-USD
 
-Mini, Small and Base remain available in the browser. The default is determined by `KRONOS_MODEL`. Mini automatically pairs with `NeoQuasar/Kronos-Tokenizer-2k`; Small and Base pair with `NeoQuasar/Kronos-Tokenizer-base`.
+The complete build defaults to all models/catalog entries; use the Node preparation script's subset options and build:ui when intentionally preparing a subset artifact, then run node scripts/check-dist.mjs. Generated assets live in ignored public folders. Model inputs live in .cache/browser-models; snapshots in .cache/pages-history.
 
-A different model/tokenizer combination adds a **Configured model** choice. Set both paths for custom weights, keep them compatible, and use trusted sources. Custom configurations use the app's 512-token limit; the current inference input is capped at 256 candles. This is not a fine-tuning or training interface.
+## Deployment
 
-Weights download on first use into the Hugging Face cache beneath `KRONOS_CACHE_DIR`. One predictor is loaded at a time; switching models replaces it in memory and reuses downloaded files.
+BASE_PATH selects a project prefix, default /. SITE_URL optionally sets the canonical origin. Set the same values for build and preview. For example BASE_PATH=/stock-predictor/ and SITE_URL=https://example.github.io. No inference API token, server model device or server host variables exist.
 
-## CPU and NVIDIA CUDA
+## Browser controls and local imports
 
-The setup scripts install CPU PyTorch for portability. For NVIDIA acceleration, replace it with a compatible CUDA build using the [official PyTorch installer](https://pytorch.org/get-started/locally/). Match your operating system and driver. The pinned dependency set uses PyTorch `2.15.0`; verify the suite if you change versions.
+Mini and WebAssembly are defaults. WebGPU is offered where the browser exposes it, but adapter initialization can still fail; explicitly select CPU if necessary. Browser storage is optional. Clear model downloads under Local data & storage.
 
-Set `KRONOS_DEVICE=cuda:0` to require CUDA or leave `auto` to use CUDA when available and CPU otherwise. The application does not select Apple's MPS backend. CPU remains the portable option on macOS.
+Import JSON with label, kind (stock or crypto), candles and future_dates. Each candle has date/open/high/low/close/volume. Include at least 64 valid completed candles and 20 future dates, strictly increasing UTC YYYY-MM-DD, USD prices, and a file smaller than 2 MB. Future stock dates must follow the correct exchange calendar; crypto dates are UTC calendar days. Files stay on this device.
 
-On Windows, inspect dependencies and device availability with:
+## Model inputs
 
-```powershell
-.\scripts\start.ps1 -Check
-```
+data/models.json records source IDs/revisions. To change models, update it and the isolated exporter's PROFILES together, regenerate all affected graphs/fixtures and repeat parity checks. See [model maintenance](../tools/model-export/README.md).
 
-After installing a CUDA build, start without `-Setup` / `--setup`: setup reinstalls the CPU dependency file. The included container is also CPU-only; see [deployment](deployment.md).
-
-## API access token
-
-For remote access, set a long random `KRONOS_API_TOKEN`, restart the service, and use TLS at the reverse proxy. The interface prompts for the token when the API returns 401. It retains the token only in browser memory; reloading requires entering it again.
-
-API clients send `Authorization: Bearer <your-token>` on every API request, including health checks. Static HTML, styles and scripts remain publicly readable. The token is a shared access control, not a user-account system. See [SECURITY.md](../SECURITY.md).
+Calendar coverage/provenance lives in data/calendar/XNYS.json. Check coverage before extending the dataset or supporting other exchanges. Calendar exhaustion is an error, never a weekends-only approximation.

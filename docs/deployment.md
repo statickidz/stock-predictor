@@ -1,50 +1,35 @@
 # Deployment
 
-The same application runs locally or on a private server. It is designed for personal research, with one process, a shared optional access token and in-memory jobs. It has no durable task queue or user accounts.
+Build with pnpm assets:prepare followed by pnpm build. The first command refreshes real snapshots and packages prepared model inputs; build reuses those snapshots and compiles Astro. Only dist is deployed.
 
-## Docker Compose
+## GitHub Pages
 
-Install Docker with Compose support, then run from the repository root:
+Select GitHub Actions in Settings → Pages. The workflow separates prepared models, Node website build/browser verification, and Pages deployment.
 
-```sh
-docker compose up --build -d
-docker compose logs -f stock-predictor
-```
+On the first run, manually dispatch GitHub Pages with prepare_models enabled. If prepared exports are missing, the model job installs the isolated Python dependencies and runs the three pinned exports. Successful exports are cached and passed as an artifact to the Node build job. Future runs restore them without Python. Missing/expired/invalid caches without explicit bootstrap fail with instructions; rerun with prepare_models enabled. If a corrupt cache has the same key, delete that Actions cache before bootstrapping again.
 
-Open [localhost:8000](http://127.0.0.1:8000) on the server or access it through an SSH tunnel. To stop:
+Normal pushes to main and the daily 06:30 UTC schedule use prepared exports. The website job installs Node dependencies, refreshes market snapshots with Node, packages assets, builds Astro and runs browser smoke before uploading dist. Model binaries are never committed to Git. The owner must push/merge and enable Pages; local commits do not deploy anything.
 
-```sh
-docker compose down
-```
+The workflow derives Astro's origin and base path from the configured Pages site. This supports repository paths, root user/organization sites and custom domains. For other hosts, SITE_URL controls the canonical origin and BASE_PATH the deployment prefix; keep them consistent in build and preview. See [Astro's Pages guide](https://docs.astro.build/en/guides/deploy/github/).
 
-The image uses Python 3.12, CPU PyTorch and a non-root application user. It does not download weights at build time. A named `model-cache` volume persists downloaded models and market history under `/data/cache`; stopping the container preserves it. Removing that volume requires downloads again.
+A complete three-model artifact is roughly 673 MB, below GitHub Pages' 1 GB limit. check-dist enforces a 950 MB budget and rejects development files/symlinks. Model chunks are at most 16 MiB; runtime files can be larger.
 
-Compose publishes `127.0.0.1:8000`, with the host port configurable through `KRONOS_PORT` in `.env`. It passes `KRONOS_API_TOKEN` and `KRONOS_CPU_THREADS`; CPU device and the container cache location are set by the packaged configuration. Edit Compose explicitly to pass other model settings. The health check supports the configured token.
+## Local production checks
 
-The supplied Dockerfile is a CPU configuration. GPU containers require a CUDA-capable PyTorch installation and NVIDIA Container Toolkit. CUDA/container execution has not been verified in the local Windows validation; see [tested scope](verification.md).
+    pnpm assets:offline
+    # PowerShell: $env:BASE_PATH='/stock-predictor/'
+    # POSIX shell: export BASE_PATH=/stock-predictor/
+    pnpm build
+    pnpm preview --port 8020
 
-## Remote access
+Use that same prefix in SMOKE_URL when running pnpm test:browser. pnpm build:ui only compiles the frontend and is not a complete forecasting artifact when assets are absent.
 
-For private access, forward the loopback port over SSH:
+## Other static hosts and Docker
 
-```sh
-ssh -L 8000:127.0.0.1:8000 your-user@your-server
-```
+Serve dist over HTTPS, with .mjs as JavaScript and .wasm as WebAssembly. WebGPU/Cache Storage require a secure context. No custom cross-origin isolation headers are needed for single-threaded WASM. If adding a CSP, allow same-origin workers/fetches and WebAssembly compilation.
 
-For browser access through a domain, place a TLS reverse proxy on the same host in front of `127.0.0.1:8000`. Before exposing the API, configure a long random `KRONOS_API_TOKEN` in `.env` and restart/recreate the service. Apply access controls and rate limits at the proxy. Allow sufficient upstream timeouts for history requests; forecasting itself is asynchronous and polled by the browser.
+Optional docker compose up --build -d serves an already-built dist with nginx on localhost:8000. It runs no model export, market refresh or inference. For the container root URL, build with BASE_PATH=/ first.
 
-The app does not terminate TLS. Keep secrets out of images and version control. See [security guidance](../SECURITY.md) and [configuration](configuration.md).
+## Snapshot publication
 
-## Runtime and resources
-
-- Keep **one worker**. Multiple Uvicorn workers each create separate models and job stores; polling may reach the wrong process.
-- At most **three jobs** can run or wait at once. A full queue returns 429; one predictor runs inference serially.
-- Finished jobs expire after **30 minutes**, and retained records are bounded at 100. All job records disappear when the process restarts. CSV exports can be saved independently.
-- Budget disk space for every model/tokenizer used, and memory for the selected predictor. First inference includes download and initialization time. No fixed latency or hardware minimum is claimed.
-- Keep the model cache persistent and monitor disk space, memory, provider failures and queue saturation.
-
-For a Python installation without Docker, use the [quick start](../README.md#quick-start) and run `python -m app` under your server's process manager. Keep its working directory at the repository root and configure the service environment deliberately. Do not use auto-reload for deployment.
-
-## Market-data permissions
-
-The default Yahoo Finance / yfinance integration is intended for personal research. Before public or commercial hosting, use a provider with suitable data rights. The MIT application license does not grant redistribution rights for market data or downloaded weights. Replace the provider behind `app/market.py` while preserving its normalized interface; see [architecture](architecture.md) and [third-party notices](../THIRD_PARTY_NOTICES.md).
+The schedule refreshes dated completed candles, not live quotes. Provider failures can retain prior real snapshots; the interface shows observation/fetch dates. The default Yahoo integration does not grant public redistribution rights. Use appropriately licensed data before public/commercial publication. Local imports stay in the browser and include their own future dates.
