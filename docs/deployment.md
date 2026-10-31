@@ -32,4 +32,4 @@ Optional docker compose up --build -d serves an already-built dist with nginx on
 
 ## Snapshot publication
 
-The schedule refreshes dated completed candles, not live quotes. Provider failures can retain prior real snapshots; the interface shows observation/fetch dates. The default Yahoo integration does not grant public redistribution rights. Use appropriately licensed data before public/commercial publication. Local imports stay in the browser and include their own future dates.
+The schedule refreshes dated completed candles, not live quotes. Provider failures can retain prior real snapshots; the interface shows observation/fetch dates. The default Yahoo integration does not grant public redistribution rights. Use appropriately licensed data before public/commercial publication.

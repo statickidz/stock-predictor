@@ -7,22 +7,26 @@ import darkStyles from '../styles/dark.css?url';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#f8f7f4" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f7f4" media="all" />
+    <meta name="theme-color" content="#111214" media="not all" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Stock Predictor is a local-first workspace for stock, ETF and crypto price forecasts, powered by Kronos." />
     <meta name="inference-worker" content="" />
     <link rel="stylesheet" href={globalStyles} />
-    <link id="dark-styles" rel="stylesheet" href={darkStyles} media="(prefers-color-scheme: dark)" />
+    <link id="dark-styles" rel="stylesheet" href={darkStyles} media="not all" />
     <script is:inline>
+      let theme = 'light';
       try {
-        const theme = localStorage.getItem('stock-predictor.theme') || 'system';
+        const saved = localStorage.getItem('stock-predictor.theme');
+        if (['light', 'dark', 'system'].includes(saved)) theme = saved;
+      } catch {}
+      {
         document.getElementById('dark-styles').media = theme === 'dark' ? 'all' : theme === 'light' ? 'not all' : '(prefers-color-scheme: dark)';
         document.documentElement.dataset.appearance = theme;
-        if (theme === 'light' || theme === 'dark') for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-          meta.media = ((theme === 'dark') === (meta.content === '#111214')) ? 'all' : 'not all';
+        for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+          meta.media = theme === 'system' ? (meta.content === '#111214' ? '(prefers-color-scheme: dark)' : '(prefers-color-scheme: light)') : (((theme === 'dark') === (meta.content === '#111214')) ? 'all' : 'not all');
         }
-      } catch {}
+      }
     </script>
     <title>Stock Predictor — Market forecasts</title>
     <link rel="icon" type="image/svg+xml" href={import.meta.env.BASE_URL + 'favicon.svg'} />

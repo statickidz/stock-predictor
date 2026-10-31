@@ -28,8 +28,17 @@
   <div class="dialog-heading"><h2 id="about-title">About Stock Predictor</h2><button type="button" data-close-dialog aria-label="Close About">Close</button></div>
   <p class="dialog-intro">A workspace for exploring daily market forecasts.</p>
   <p>Explore stocks, ETFs and cryptocurrency using Kronos models that run on your device. Published snapshots load first; forecasts are generated when you request them.</p>
-  <p>Your selections are remembered in this browser. Imported history stays on your device.</p>
+  <p>Your selections are remembered in this browser. Remove downloaded model files through Settings in the navbar.</p>
   <p>CPU is the default. GPU uses WebGPU where supported; if a forecast fails, switch to CPU and try again. Larger models need more memory.</p>
   <a href="https://github.com/statickidz/stock-predictor" target="_blank" rel="noopener noreferrer">View the project on GitHub</a>
   <p class="dialog-note">For research only. Not financial advice.</p>
+</dialog>
+
+<dialog id="disclaimer-dialog" class="info-dialog" aria-labelledby="disclaimer-title">
+  <div class="dialog-heading"><h2 id="disclaimer-title">Disclaimer</h2><button type="button" data-close-dialog aria-label="Close Disclaimer">Close</button></div>
+  <p class="dialog-intro">For research and education only.</p>
+  <p>Stock Predictor does not provide financial advice or recommendations to buy, sell or hold an asset.</p>
+  <p>Model forecasts are estimates, can vary between runs and may be wrong. They do not guarantee future prices or trading volumes and do not represent calibrated confidence intervals.</p>
+  <p>Market data consists of daily snapshots, not live quotes. Check the observation and fetch dates shown with each asset; snapshots may be out of date.</p>
+  <p>Use your own judgment and independent research when making financial decisions. Investing involves risk, including the loss of capital.</p>
 </dialog>

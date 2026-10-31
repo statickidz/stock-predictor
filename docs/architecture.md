@@ -4,7 +4,7 @@ Stock Predictor has one application architecture: an Astro static frontend runni
 
 ## Boundaries
 
-Astro renders the document shell and workspace components from src/pages, src/layouts and src/components. Browser modules in src/lib own chart rendering, selection/CSV state, import contracts, cache validation and worker requests. src/workers owns model execution. No API server, job queue or server-side inference process exists.
+Astro renders the document shell and workspace components from src/pages, src/layouts and src/components. Browser modules in src/lib own chart rendering, selection/CSV state, cache validation and worker requests. src/workers owns model execution. No API server, job queue or server-side inference process exists.
 
 The inference flow is normalization → learned tokenizer encoder → two-stage autoregressive generation → tokenizer decoder → sample averaging and inverse normalization. Preserve the verified algorithms when changing the interface. One worker holds one model's sessions. Selection changes invalidate pending work; cancellation terminates the worker. Idle sessions can be reused.
 

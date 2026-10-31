@@ -31,7 +31,7 @@
     class="chart-wrap"
     id="chart-wrap"
     tabindex="0"
-    aria-label="Closing price and volume chart. Use left and right arrow keys to explore prices."
+    aria-label="Closing price and volume chart. Tap or drag horizontally to inspect. Use left and right arrow keys, Home or End to explore prices and volume."
   >
     <svg id="price-chart" role="img" aria-label="Loading price chart"></svg>
     <div id="chart-message" class="chart-message">
@@ -40,6 +40,7 @@
       ><span>Loading daily price history.</span>
     </div>
     <div id="chart-tooltip" class="chart-tooltip" hidden></div>
+    <span class="sr-only" role="status" aria-live="polite" data-chart-announcement></span>
   </div>
   <div class="chart-foot">
     <div class="chart-legend">
@@ -47,6 +48,7 @@
         ><i class="legend-forecast"></i>Kronos forecast</span><span class="volume-legend">Volume below</span>
     </div><span class="chart-note" id="chart-note">Completed candles only</span>
   </div>
+  <p class="chart-interaction-hint"><span class="pointer-hint">Hover to inspect · arrow keys to move</span><span class="touch-hint">Tap or drag to inspect · swipe vertically to scroll</span></p>
   <div id="forecast-summary" class="forecast-summary" hidden>
     <div>
       <span>Projected close</span><strong id="projected-price">—</strong>

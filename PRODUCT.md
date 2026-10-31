@@ -14,7 +14,7 @@ The curated catalog includes 80 US equities,20 ETFs and30 USD crypto pairs. Dail
 
 Kronos Mini (default), Small and Base execute in browser workers with matching tokenizers. One model's sessions remain loaded at a time. Runtime choice offers single-threaded WebAssembly or supported WebGPU. Selection changes cancel running forecasts; stale results cannot update the chart.
 
-Published history uses completed market candles and a versioned exchange calendar. Fetch/observation dates remain visible. Imported JSON stays on the device and supplies its own future dates. Browser caching is optional and verified.
+Published history uses completed market candles and a versioned exchange calendar. Fetch/observation dates remain visible. Browser caching is optional and verified.
 
 ## Principles
 

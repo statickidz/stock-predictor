@@ -12,10 +12,11 @@ function element(name, attributes, text) {
 }
 
 export function createChart(svg, wrapper, tooltip) {
-  let history = null, result = null, range = 3, points = [], layout = null, cursor = -1;
+  let history = null, result = null, range = 3, points = [], layout = null, cursor = -1, crosshair = null, marker = null, touchPointer = null;
   function draw() {
     svg.replaceChildren();
     tooltip.hidden = true;
+    cursor = -1; crosshair = null; marker = null;
     if (!history) {
       points = []; layout = null;
       svg.setAttribute('aria-label', 'Waiting for completed daily price history.');
@@ -34,7 +35,7 @@ export function createChart(svg, wrapper, tooltip) {
     const low = min - pad, high = max + pad;
     const x = (index) => left + index / (total - 1) * (right - left);
     const y = (price) => bottom - (price - low) / (high - low) * (bottom - top);
-    layout = {x, left, right, width, total};
+    layout = {x, y, left, right, width, height, total};
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.setAttribute('aria-label', `${history.asset.name} historical daily closing prices and volume through ${history.as_of}${result ? ` and ${forecast.length} projected closing prices and volumes through ${forecast.at(-1).date}` : '. Generate a forecast to add projected prices.'}`);
     const cutoff = x(observed.length - 1);
@@ -71,26 +72,67 @@ export function createChart(svg, wrapper, tooltip) {
       svg.append(element('text', {x:x(pointIndex),y:height-12,'text-anchor':index === 0 ? 'start' : 'middle',class:'chart-axis'},shortDate(observed[pointIndex].date)));
     }
     if (forecast.length && right-cutoff>50) svg.append(element('text',{x:right,y:height-12,'text-anchor':'end',class:'chart-axis'},shortDate(forecast.at(-1).date)));
+    crosshair = element('line', {x1:0,x2:0,y1:top-18,y2:volumeBase,class:'chart-crosshair',visibility:'hidden','aria-hidden':'true'});
+    marker = element('circle', {cx:0,cy:0,r:4,class:'chart-cursor-point',visibility:'hidden','aria-hidden':'true'});
+    svg.append(crosshair, marker);
   }
-  function inspect(index) {
+  function inspect(index, touchY) {
     if (!points.length) return;
     cursor = Math.max(0, Math.min(points.length-1,index));
     const point = points[cursor];
     tooltip.textContent = `${shortDate(point.date)} · ${point.predicted ? 'Projected close' : 'Historical close'}\nUSD ${number.format(point.close)}\n${point.predicted ? 'Projected volume' : 'Volume'} · ${number.format(point.volume ?? 0)}`;
     tooltip.hidden = false;
+    const anchorX = layout.x(cursor), anchorY = layout.y(point.close);
+    crosshair.setAttribute('x1', anchorX); crosshair.setAttribute('x2', anchorX);
+    crosshair.setAttribute('visibility', 'visible');
+    marker.setAttribute('cx', anchorX); marker.setAttribute('cy', anchorY);
+    marker.setAttribute('visibility', 'visible');
+    const inset = 8, gap = 14;
+    const width = tooltip.offsetWidth, height = tooltip.offsetHeight;
+    const preferredLeft = anchorX + gap + width <= layout.width - inset ? anchorX + gap : anchorX - width - gap;
+    tooltip.style.left = Math.max(inset, Math.min(preferredLeft, layout.width - width - inset)) + 'px';
+    tooltip.style.top = Math.max(inset, Math.min((touchY ?? anchorY) - height - (touchY == null ? gap : 32), layout.height - height - inset)) + 'px';
   }
-  wrapper.addEventListener('pointermove', event => {
+  function dismiss() {
+    cursor = -1;
+    tooltip.hidden = true;
+    crosshair?.setAttribute('visibility', 'hidden');
+    marker?.setAttribute('visibility', 'hidden');
+  }
+  function inspectPointer(event) {
     if (!layout || !points.length) return;
-    const position = event.clientX-wrapper.getBoundingClientRect().left;
-    inspect(Math.round((position-layout.left)/(layout.right-layout.left)*(layout.total-1)));
-  });
-  wrapper.addEventListener('pointerleave', () => { tooltip.hidden=true; });
-  wrapper.addEventListener('keydown', event => {
-    if (event.key==='ArrowRight' || event.key==='ArrowLeft') {
-      event.preventDefault();
-      inspect(cursor<0 ? 0 : cursor+(event.key==='ArrowRight' ? 1 : -1));
+    const box = wrapper.getBoundingClientRect();
+    inspect(Math.round((event.clientX - box.left - layout.left) / (layout.right - layout.left) * (layout.total - 1)),
+      event.pointerType === 'touch' ? event.clientY - box.top : undefined);
+  }
+  wrapper.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (event.pointerType !== 'mouse') {
+      touchPointer = event.pointerId;
+      wrapper.setPointerCapture(event.pointerId);
     }
-    if (event.key==='Escape') tooltip.hidden=true;
+    inspectPointer(event);
+  });
+  wrapper.addEventListener('pointermove', event => {
+    if (!event.isPrimary) return;
+    if (event.pointerType === 'mouse' || event.pointerId === touchPointer) inspectPointer(event);
+  });
+  wrapper.addEventListener('pointerup', event => {
+    if (event.pointerId === touchPointer) touchPointer = null;
+    // Touch selection stays visible after lifting a finger; native capture releases automatically.
+  });
+  wrapper.addEventListener('pointercancel', () => { touchPointer = null; dismiss(); });
+  wrapper.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') dismiss(); });
+  document.addEventListener('pointerdown', event => { if (!wrapper.contains(event.target)) dismiss(); });
+  wrapper.addEventListener('blur', () => { if (touchPointer == null) dismiss(); });
+  wrapper.addEventListener('keydown', event => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      inspect(event.key === 'Home' ? 0 : event.key === 'End' ? points.length - 1 : cursor < 0 ? 0 : cursor + (event.key === 'ArrowRight' ? 1 : -1));
+      const announcement = wrapper.querySelector('[data-chart-announcement]');
+      if (announcement) announcement.textContent = tooltip.textContent;
+    }
+    if (event.key === 'Escape') dismiss();
   });
   new ResizeObserver(draw).observe(wrapper);
   return {update(nextHistory,nextResult=null,nextRange=range) { history=nextHistory; result=nextResult; range=nextRange; cursor=-1; draw(); }};
