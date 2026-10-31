@@ -11,7 +11,7 @@
   <p><a href="#quick-start">Quick start</a> · <a href="#run-with-docker">Docker</a> · <a href="#choose-your-model">Models</a> · <a href="docs/deployment.md">Deployment</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
-![Stock Predictor showing a stock forecast, observed prices and model controls](docs/images/forecast-desktop.jpg)
+![Stock Predictor showing NVIDIA (NVDA) with a 20-trading-day Kronos Small forecast](docs/images/forecast-desktop.jpg)
 
 Stock Predictor is a small, self-hostable research app: pick an asset, choose a Kronos model and explore its projected daily closes. A single Python service serves the interface and runs inference on your machine. No frontend build step or paid data API key is required.
 
