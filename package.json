@@ -18,6 +18,7 @@
     "assets:offline": "node scripts/prepare-assets.mjs --offline-data",
     "models:check": "node scripts/check-models.mjs",
     "preview": "node scripts/astro.mjs preview --host 127.0.0.1",
-    "test:browser": "node tests/browser-smoke.mjs"
+    "test:browser": "node tests/browser-smoke.mjs",
+    "test:design": "node tests/night-studio-browser.mjs"
   }
 }

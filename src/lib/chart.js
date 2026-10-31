@@ -46,14 +46,15 @@ export function createChart(svg, wrapper, tooltip) {
       svg.append(element('text', {x:right+9, y:lineY+3, class:'chart-axis'}, number.format(value)));
     }
     svg.append(element('line', {x1:cutoff,y1:top-18,x2:cutoff,y2:bottom,class:'forecast-divider'}));
-    if (right-cutoff > 47) svg.append(element('text', {x:cutoff+(right-cutoff)/2,y:top-6,'text-anchor':'middle',class:'chart-region-label'}, result ? 'FORECAST' : 'NEXT'));
+    if (right-cutoff > 47) svg.append(element('text', {x:cutoff+(right-cutoff)/2,y:top-6,'text-anchor':'middle',class:'chart-region-label'}, result ? 'Forecast' : 'Next'));
     const path = (items, offset=0) => items.map((point, index) => `${index ? 'L' : 'M'}${x(index+offset).toFixed(2)},${y(point.close).toFixed(2)}`).join(' ');
+    svg.append(element('path', {d:`${path(observed)} L${cutoff},${bottom} L${left},${bottom} Z`, class:'history-area'}));
     svg.append(element('path', {d:path(observed), class:'history-line'}));
     const finalObserved = observed.at(-1);
-    svg.append(element('circle', {cx:cutoff,cy:y(finalObserved.close),r:3,fill:'#4d6657',stroke:'#fff','stroke-width':1.5}));
+    svg.append(element('circle', {cx:cutoff,cy:y(finalObserved.close),r:3,class:'history-point'}));
     if (forecast.length) {
       svg.append(element('path', {d:path([finalObserved,...forecast],observed.length-1),class:'forecast-line'}));
-      svg.append(element('circle',{cx:x(points.length-1),cy:y(points.at(-1).close),r:3.2,fill:'#bf5a35',stroke:'#fff','stroke-width':1.5}));
+      svg.append(element('circle',{cx:x(points.length-1),cy:y(points.at(-1).close),r:3.2,class:'forecast-point'}));
     }
     const volumeBase = height - 37, volumeTop = bottom + 28;
     const maxVolume = Math.max(1, ...points.map(point => point.volume || 0));
