@@ -5,8 +5,21 @@ export function forecastInput(history, horizon) {
   return {candles: history.candles, future_dates: history.future_dates.slice(0, horizon)};
 }
 
-export async function staticJson(path) {
-  const response = await fetch(assetUrl(path), {cache:'no-cache'});
-  if (!response.ok) throw new Error('This snapshot is unavailable. Choose another asset or retry later.');
-  return response.json();
+export async function loadStaticJson(path, {marketBase = '', fetcher = globalThis.fetch} = {}) {
+  const bundled = assetUrl(path);
+  const marketPath = path === 'data/assets.json' || /^data\/history\/[^/]+\.json$/.test(path);
+  const read = async url => {
+    const response = await fetcher(url, {cache:'no-cache', signal:AbortSignal.timeout(10000)});
+    if (!response.ok) throw new Error('This snapshot is unavailable. Choose another asset or retry later.');
+    return response.json();
+  };
+  if (marketBase && marketPath) {
+    try { return await read(`${marketBase.replace(/\/$/, '')}/${path.slice(5)}`); }
+    catch { /* Keep the site usable during first publication or provider outages. */ }
+  }
+  return read(bundled);
+}
+
+export function staticJson(path) {
+  return loadStaticJson(path, {marketBase:import.meta.env?.PUBLIC_MARKET_DATA_URL || ''});
 }

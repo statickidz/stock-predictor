@@ -21,7 +21,7 @@ try {
     const path = new URL(request.url()).pathname;
     assert.ok(!/(^|\/)api(?:\/|$)/.test(path), 'Unexpected backend dependency');
     if (!forecastingStarted && /\/(models|runtime)\//.test(path)) prematureDownloads.push(path);
-    if (/\/(data|models|runtime)\//.test(path)) {
+    if (new URL(request.url()).origin === new URL(base).origin && /\/(data|models|runtime)\//.test(path)) {
       assert.ok(path.startsWith(new URL(base).pathname), `Public asset escaped deployment base: ${path}`);
     }
   });
