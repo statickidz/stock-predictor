@@ -1,44 +1,19 @@
 # Configuration
 
-Copy [`.env.example`](../.env.example) to `.env` in the repository root. The application loads it automatically; existing environment variables take precedence. The `KRONOS_*` prefix is retained for compatibility with the original setup.
+The static runtime has no server environment variables, authentication token or model service.
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `KRONOS_HOST` | `127.0.0.1` | Bind address for `python -m app` |
-| `KRONOS_PORT` | `8000` | HTTP port |
-| `KRONOS_DEVICE` | `auto` | Automatic CUDA/CPU selection, `cpu`, or `cuda:0` |
-| `KRONOS_CPU_THREADS` | `4` | PyTorch CPU thread budget, at least 1 |
-| `KRONOS_CACHE_DIR` | project `.cache` | Model and market-history cache |
-| `KRONOS_MODEL` | `NeoQuasar/Kronos-small` | Default model repository or trusted local path |
-| `KRONOS_TOKENIZER` | Matching preset | Optional tokenizer override |
-| `KRONOS_API_TOKEN` | Empty | Optional bearer token protecting every `/api/*` route |
+python scripts/build_pages.py includes all three models and the 130-asset catalog. Optional flags:
 
-Start scripts change to the project root, so relative paths such as `.cache` resolve there. Command-line `--host` and `--port` override the corresponding environment settings. On Windows, the start script also accepts `-Port 8001`.
+- --models mini small includes selected models only.
+- --symbols AAPL NVDA BTC-USD builds a smaller catalog.
+- --offline-data reuses prior real snapshots without provider requests.
 
-## Models
+dist is rebuilt from scratch. Do not replace it with a symlink. Export caches live in .cache/browser-models and source weights in .cache/huggingface; neither directory is deployed.
 
-Mini, Small and Base remain available in the browser. The default is determined by `KRONOS_MODEL`. Mini automatically pairs with `NeoQuasar/Kronos-Tokenizer-2k`; Small and Base pair with `NeoQuasar/Kronos-Tokenizer-base`.
+Pinned weight/tokenizer revisions are declared in PROFILES in scripts/export_browser.py and recorded in manifests. Changing export code invalidates graph caches. Custom architecture/model overrides from the legacy server are unsupported by the static runtime.
 
-A different model/tokenizer combination adds a **Configured model** choice. Set both paths for custom weights, keep them compatible, and use trusted sources. Custom configurations use the app's 512-token limit; the current inference input is capped at 256 candles. This is not a fine-tuning or training interface.
+Mini and WebAssembly are defaults. WebGPU is available when the browser exposes it, but adapter initialization can still fail; choose CPU explicitly in that case. Persistent caching is optional. Clear downloaded models under Local data & storage.
 
-Weights download on first use into the Hugging Face cache beneath `KRONOS_CACHE_DIR`. One predictor is loaded at a time; switching models replaces it in memory and reuses downloaded files.
+Import at least 64 valid daily OHLCV candles and 20 future dates in JSON under 2 MB. Dates increase strictly in UTC YYYY-MM-DD format. Supply the correct stock/ETF exchange calendar or daily crypto dates.
 
-## CPU and NVIDIA CUDA
-
-The setup scripts install CPU PyTorch for portability. For NVIDIA acceleration, replace it with a compatible CUDA build using the [official PyTorch installer](https://pytorch.org/get-started/locally/). Match your operating system and driver. The pinned dependency set uses PyTorch `2.15.0`; verify the suite if you change versions.
-
-Set `KRONOS_DEVICE=cuda:0` to require CUDA or leave `auto` to use CUDA when available and CPU otherwise. The application does not select Apple's MPS backend. CPU remains the portable option on macOS.
-
-On Windows, inspect dependencies and device availability with:
-
-```powershell
-.\scripts\start.ps1 -Check
-```
-
-After installing a CUDA build, start without `-Setup` / `--setup`: setup reinstalls the CPU dependency file. The included container is also CPU-only; see [deployment](deployment.md).
-
-## API access token
-
-For remote access, set a long random `KRONOS_API_TOKEN`, restart the service, and use TLS at the reverse proxy. The interface prompts for the token when the API returns 401. It retains the token only in browser memory; reloading requires entering it again.
-
-API clients send `Authorization: Bearer <your-token>` on every API request, including health checks. Static HTML, styles and scripts remain publicly readable. The token is a shared access control, not a user-account system. See [SECURITY.md](../SECURITY.md).
+The old KRONOS_* variables and .env.example apply only to retained legacy tooling, not Pages.

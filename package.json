@@ -1,9 +1,16 @@
 {
   "name": "stock-predictor",
   "version": "0.1.0",
-  "description": "Local-first stock, ETF and crypto forecasting powered by Kronos.",
+  "description": "Static stock, ETF and crypto forecasting with browser-executed Kronos models.",
   "license": "MIT",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test tests/frontend.test.mjs" }
+  "packageManager": "pnpm@11.25.0",
+  "dependencies": { "onnxruntime-web": "1.24.2" },
+  "devDependencies": { "playwright": "1.62.1" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build": "python scripts/build_pages.py",
+    "preview": "python scripts/serve_browser.py"
+  }
 }

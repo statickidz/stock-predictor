@@ -1,4 +1,7 @@
 .venv/
+dist/
+node_modules/
+docs/superpowers/
 .cache/
 __pycache__/
 .pytest_cache/

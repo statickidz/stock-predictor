@@ -1,50 +1,29 @@
-# Deployment
+# Static deployment
 
-The same application runs locally or on a private server. It is designed for personal research, with one process, a shared optional access token and in-memory jobs. It has no durable task queue or user accounts.
+The production artifact is dist. It contains HTML/CSS/ES modules, browser runtime files, immutable model chunks, JSON data and notices. No Python, Node, API token or server inference process runs at deployment time.
 
-## Docker Compose
+## GitHub Pages
 
-Install Docker with Compose support, then run from the repository root:
+Choose GitHub Actions in Settings → Pages. The GitHub Pages workflow builds and uploads dist with actions/upload-pages-artifact and deploys with actions/deploy-pages. Only the deployment job has pages:write and id-token:write permissions.
 
-```sh
-docker compose up --build -d
-docker compose logs -f stock-predictor
-```
+Pushes to main and manual dispatch trigger the workflow. Feature-branch dispatch requires that branch to be allowed by the github-pages environment. The 06:30 UTC daily schedule runs from the default branch. The owner must push/merge and enable Pages; keeping a branch locally does not publish a site.
 
-Open [localhost:8000](http://127.0.0.1:8000) on the server or access it through an SSH tunnel. To stop:
+First builds download pinned weights and validate exports. Subsequent runs cache weights, exported graphs and prior snapshots. Successful runs save a fresh snapshot cache. Exporter/architecture hashes invalidate graph caches. No weights or price datasets are committed to Git.
 
-```sh
-docker compose down
-```
+A full build is approximately 673 MB, below Pages' 1 GB published-site limit. The builder refuses artifacts larger than 950 MB. Every model chunk is at most 16 MiB. All URLs resolve relative to their containing modules and support repository subpaths.
 
-The image uses Python 3.12, CPU PyTorch and a non-root application user. It does not download weights at build time. A named `model-cache` volume persists downloaded models and market history under `/data/cache`; stopping the container preserves it. Removing that volume requires downloads again.
+See GitHub's [custom workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) and [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
 
-Compose publishes `127.0.0.1:8000`, with the host port configurable through `KRONOS_PORT` in `.env`. It passes `KRONOS_API_TOKEN` and `KRONOS_CPU_THREADS`; CPU device and the container cache location are set by the packaged configuration. Edit Compose explicitly to pass other model settings. The health check supports the configured token.
+## Market snapshots
 
-The supplied Dockerfile is a CPU configuration. GPU containers require a CUDA-capable PyTorch installation and NVIDIA Container Toolkit. CUDA/container execution has not been verified in the local Windows validation; see [tested scope](verification.md).
+Pages cannot run yfinance. Builds fetch completed candles and the next 20 exchange/calendar dates. The browser slices those dates for the chosen horizon. Failed refreshes reuse prior real snapshots where possible; missing assets are unavailable. A build with zero real snapshots fails.
 
-## Remote access
+Observation/fetch dates remain visible. Forecast dates are relative to the snapshot, not the current wall clock. Rebuild when history needs refreshing. Local imports include their own future dates and stay in the browser.
 
-For private access, forward the loopback port over SSH:
+The default provider's personal-use terms do not grant public redistribution rights. Before public/commercial deployment, replace MarketData._load with a provider permitting publication or use your own licensed dataset. Packaging and workflows do not grant data rights.
 
-```sh
-ssh -L 8000:127.0.0.1:8000 your-user@your-server
-```
+## Other static hosts
 
-For browser access through a domain, place a TLS reverse proxy on the same host in front of `127.0.0.1:8000`. Before exposing the API, configure a long random `KRONOS_API_TOKEN` in `.env` and restart/recreate the service. Apply access controls and rate limits at the proxy. Allow sufficient upstream timeouts for history requests; forecasting itself is asynchronous and polled by the browser.
+Serve dist over HTTPS or localhost. Configure .mjs as text/javascript and .wasm as application/wasm. GitHub Pages supplies these MIME types. No COOP/COEP headers are required for single-threaded WASM. If adding a CSP, allow same-origin workers/fetches and WebAssembly compilation. JSON should revalidate; content-hashed model chunks can be cached immutably.
 
-The app does not terminate TLS. Keep secrets out of images and version control. See [security guidance](../SECURITY.md) and [configuration](configuration.md).
-
-## Runtime and resources
-
-- Keep **one worker**. Multiple Uvicorn workers each create separate models and job stores; polling may reach the wrong process.
-- At most **three jobs** can run or wait at once. A full queue returns 429; one predictor runs inference serially.
-- Finished jobs expire after **30 minutes**, and retained records are bounded at 100. All job records disappear when the process restarts. CSV exports can be saved independently.
-- Budget disk space for every model/tokenizer used, and memory for the selected predictor. First inference includes download and initialization time. No fixed latency or hardware minimum is claimed.
-- Keep the model cache persistent and monitor disk space, memory, provider failures and queue saturation.
-
-For a Python installation without Docker, use the [quick start](../README.md#quick-start) and run `python -m app` under your server's process manager. Keep its working directory at the repository root and configure the service environment deliberately. Do not use auto-reload for deployment.
-
-## Market-data permissions
-
-The default Yahoo Finance / yfinance integration is intended for personal research. Before public or commercial hosting, use a provider with suitable data rights. The MIT application license does not grant redistribution rights for market data or downloaded weights. Replace the provider behind `app/market.py` while preserving its normalized interface; see [architecture](architecture.md) and [third-party notices](../THIRD_PARTY_NOTICES.md).
+Docker is optional: build dist first, then docker compose up --build -d. The nginx image copies only dist and serves it at localhost:8000. Rebuild the image after static changes. No GPU device, inference cache volume or API environment variables are needed.

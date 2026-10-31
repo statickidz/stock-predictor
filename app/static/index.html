@@ -7,14 +7,14 @@
   <meta name="color-scheme" content="light">
   <meta name="description" content="Stock Predictor is a local-first workspace for stock, ETF and crypto price forecasts, powered by Kronos.">
   <title>Stock Predictor — Market forecasts</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/app.js"></script>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to forecast</a>
   <header class="site-header">
-    <a class="brand" href="/" aria-label="Stock Predictor home">
+    <a class="brand" href="./" aria-label="Stock Predictor home">
       <svg width="29" height="29" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5v22h23M9 20l6-6 5 3 8-10M23 7h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>stock predictor<span class="brand-period">.</span></span>
     </a>
@@ -25,12 +25,6 @@
 
   <main id="workspace">
     <div class="page-heading"><div><h1>Explore what’s next.</h1><p>A little more perspective on the markets. Powered by Kronos.</p></div><span class="workspace-label"><span class="tiny-line"></span> Daily price forecasts</span></div>
-
-    <form id="auth-panel" class="auth-panel" hidden>
-      <div><h2>Connect to this server</h2><p>Enter its access token to load market data and forecasts.</p></div>
-      <label class="sr-only" for="access-token">Server access token</label><input id="access-token" type="password" autocomplete="off" placeholder="Server access token" required><button class="primary-button" type="submit">Connect</button>
-      <p id="auth-error" class="error-copy" role="alert"></p>
-    </form>
 
     <div class="workspace-grid">
       <section class="chart-panel" aria-labelledby="asset-name">
@@ -53,15 +47,18 @@
         <div id="asset-list" class="asset-list" aria-label="Supported assets"><p class="muted">Loading assets…</p></div>
         <fieldset class="horizon-field"><legend class="field-label">Forecast horizon</legend><div class="horizon-options"><button type="button" data-horizon="5" aria-pressed="false">5 days</button><button type="button" data-horizon="10" aria-pressed="true">10 days</button><button type="button" data-horizon="20" aria-pressed="false">20 days</button></div><p id="horizon-help">Trading days · skips weekends & holidays</p></fieldset>
         <div class="model-field"><label for="model-select" class="field-label">Model</label><select id="model-select" aria-describedby="model-help" disabled><option>Loading models…</option></select><p id="model-help">Choose which Kronos model generates your forecast.</p></div>
+        <div class="model-field"><label for="runtime-select" class="field-label">Run on this device</label><select id="runtime-select"><option value="wasm">WebAssembly · CPU</option><option value="webgpu">WebGPU · GPU</option></select><p>Larger models need more memory. Try Mini first on phones.</p></div>
         <button id="generate-button" class="primary-button generate" type="button" disabled><span id="generate-label">Generate forecast</span><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h13M11 5l5 5-5 5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg></button>
-        <div id="job-status" class="job-status" role="status" aria-live="polite">Each model downloads on first use. Later runs use cached weights.</div>
+        <button id="cancel-button" class="secondary-button" type="button" hidden>Cancel forecast</button>
+        <div id="job-status" class="job-status" role="status" aria-live="polite">Models run in your browser. The first forecast downloads model files.</div>
+        <details class="local-data"><summary>Local data &amp; storage</summary><label for="import-history" class="field-label">Import history JSON</label><input id="import-history" type="file" accept=".json,application/json"><p>64+ OHLCV candles and 20 future session dates. Files stay on this device.</p><button id="clear-cache" class="text-button" type="button">Clear downloaded models</button></details>
         <div id="error-panel" class="error-panel" role="alert" hidden><strong id="error-title">Unable to load data</strong><p id="error-message"></p><button id="retry-button" class="text-button" type="button">Try again <span aria-hidden="true">↗</span></button></div>
       </aside>
     </div>
 
     <section id="forecast-results" class="results-section" hidden aria-labelledby="results-heading"><div class="section-heading"><div><h2 id="results-heading">The path ahead</h2><p id="results-caption"></p></div><button id="download-csv" class="secondary-button" type="button"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>Export CSV</button></div><div class="table-scroll"><table><caption class="sr-only">Daily projected closing prices</caption><thead><tr><th scope="col">Date</th><th scope="col">Projected close</th><th scope="col">From last observed close</th></tr></thead><tbody id="forecast-rows"></tbody></table></div><p class="provenance" id="forecast-provenance"></p></section>
 
-    <section class="methodology" id="methodology" aria-labelledby="method-heading"><details><summary><div><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 11v6m0-10v1" stroke="currentColor" stroke-width="1.5"/></svg><h2 id="method-heading">A model, not a crystal ball.</h2></div><span>How this works <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg></span></summary><div class="method-columns"><div><h3>Start with the market</h3><p>Completed daily OHLCV candles come from Yahoo Finance via yfinance. Stock prices are adjusted. The last observation date is always shown.</p></div><div><h3>Let Kronos find a path</h3><p>The open-source model uses up to 256 candles of context. Three sampled paths are averaged into the closing prices you see. Results can vary between runs.</p></div><div><h3>Keep the uncertainty</h3><p>A forecast is an estimate, not a guarantee or a confidence interval. Use this as a research tool, alongside your own judgment.</p></div></div></details></section>
+    <section class="methodology" id="methodology" aria-labelledby="method-heading"><details><summary><div><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 11v6m0-10v1" stroke="currentColor" stroke-width="1.5"/></svg><h2 id="method-heading">A model, not a crystal ball.</h2></div><span>How this works <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5" stroke="currentColor" fill="none" stroke-width="1.5"/></svg></span></summary><div class="method-columns"><div><h3>Start with the market</h3><p>Daily snapshots are refreshed when this site is built. They contain completed Yahoo Finance candles; stock prices are adjusted. Observation and fetch dates stay visible. These are daily observations, not live quotes.</p></div><div><h3>Let Kronos find a path</h3><p>Kronos runs on your device using up to 256 candles of context. Three sampled paths are averaged into the closing prices you see. Results can vary between runs.</p></div><div><h3>Keep the uncertainty</h3><p>A forecast is an estimate, not a guarantee or a confidence interval. Use this as a research tool, alongside your own judgment.</p></div></div></details></section>
     <footer><span>Built on <a href="https://github.com/shiyu-coder/Kronos" target="_blank" rel="noopener noreferrer">Kronos</a>. Made for exploration.</span><span>For research only. Not financial advice.</span></footer>
   </main>
 </body>

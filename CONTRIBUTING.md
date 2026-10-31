@@ -1,50 +1,11 @@
-# Contributing to Stock Predictor
+# Contributing
 
-Keep changes focused and describe the problem they solve. For larger changes, open an issue first to discuss scope. Include reproduction steps for bugs and screenshots for visible interface changes.
+Use Python 3.12 and Node 24. Install build/development dependencies as shown in README. Production source is app/static; scripts/build_pages.py creates ignored dist artifacts. Keep weights, market data, caches, credentials and .env out of Git.
 
-## Run the full app
+Run pnpm test and python -m pytest -q. A Mini/subset artifact is convenient for iteration. Before merging deployment changes, build all models and run actual browser smoke at a repository subpath.
 
-Use Python 3.12. From the repository root, run:
+Preserve DESIGN.md, chart keyboard interactions, CSV provenance, date labels and selection invalidation. Keep URLs relative. Do not add fake-data/inference fallbacks, API dependencies or client-embedded secrets.
 
-```powershell
-# Windows PowerShell
-.\scripts\start.ps1 -Setup
-```
+Export changes must retain the unmodified upstream source, pinned provenance and upstream/PyTorch/ONNX/browser parity checks. Cache persistence is optional; storage failures must not block verified inference. GitHub Pages cannot supply custom isolation headers, so default WASM remains single-threaded.
 
-```sh
-# macOS / Linux
-sh scripts/start.sh --setup
-```
-
-These scripts install the application and CPU PyTorch. See the [README](README.md) for platform alternatives and subsequent starts. Real forecasts fetch market history and download model weights on first use.
-
-Read [architecture](docs/architecture.md) for the provider, predictor, and job boundaries, and [configuration](docs/configuration.md) before changing runtime settings.
-
-## Run tests without PyTorch
-
-Node 24 is needed only for frontend tests; no npm dependencies or build step are required. Python tests use provider and predictor fixtures, so they need neither PyTorch nor downloaded weights. In a fresh checkout:
-
-```powershell
-# Windows PowerShell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest -q
-node --test tests/frontend.test.mjs
-```
-
-```sh
-# macOS / Linux
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m pytest -q
-node --test tests/frontend.test.mjs
-```
-
-Dependency installation needs network access. Keep the tests themselves deterministic: inject fixtures at the market-provider and predictor boundaries, avoid live market requests, and never require weights or GPU hardware. Document any separately performed real-inference checks in the pull request.
-
-## Source and data hygiene
-
-- Keep upstream source under `vendor/` unmodified and retain its licenses and notices. Discuss an upstream refresh separately; preserve provenance in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- Exclude `.env`, tokens, downloaded weights, caches, and personal artifacts from contributions.
-- Match the surrounding code and `.editorconfig`; update relevant tests and documentation when behavior changes.
-- Report security issues using [SECURITY.md](SECURITY.md), rather than a public issue.
+Legacy Python backend modules remain reference/test tooling. Production features use browser inference and static contracts. Building does not authorize pushing, publishing data or changing repository settings.

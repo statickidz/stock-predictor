@@ -25,3 +25,9 @@ yfinance documentation: https://ranaroussi.github.io/yfinance/
 yfinance is an independent open-source project and is not affiliated with Yahoo. Its documentation states that Yahoo Finance data access is intended for personal use. This application's default provider is for personal/research use. Server packaging does not grant redistribution or commercial data rights. For public/commercial service, replace `MarketData._load` with a provider licensed for that use, preserving the normalized OHLCV interface.
 
 Python dependencies retain their own licenses in installed package metadata.
+
+## ONNX Runtime Web
+
+The static artifact redistributes ONNX Runtime Web 1.24.2 and associated WebAssembly runtime variants under the MIT license. Its license is preserved at vendor/onnxruntime-LICENSE.txt and copied to ONNXRUNTIME-LICENSE.txt in the artifact. Source: https://github.com/microsoft/onnxruntime/tree/v1.24.2.
+
+Exported Kronos graphs are transformations of the pinned model weights, whose model/tokenizer IDs and revisions are recorded in their manifests. Public snapshot publication requires appropriate market-data redistribution rights; GitHub Pages packaging does not grant them.

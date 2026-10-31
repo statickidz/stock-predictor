@@ -1,5 +1,8 @@
 import { createSelectionState, toCsv } from './state.js';
 import { createChart } from './chart.js';
+import {staticJson, forecastInput, importedHistory} from './data.js';
+import {BrowserInference} from './inference-client.js';
+import {cacheName} from './model-cache.js';
 
 const $ = (id) => document.getElementById(id);
 const money = (value) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
@@ -7,27 +10,8 @@ const percent = (value) => `${value>=0 ? '+' : ''}${value.toFixed(2)}%`;
 const date = (value) => new Date(value+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
 const state = createSelectionState();
 const chart = createChart($('price-chart'),$('chart-wrap'),$('chart-tooltip'));
-let assets=[], models=[], modelKey=null, selected=null, market='stock', horizon=10, range=3, history=null, result=null, busy=false, token='', retryAction=null;
-
-class ApiError extends Error { constructor(message,status) { super(message); this.status=status; } }
-async function api(path,options={}) {
-  const controller = new AbortController();
-  const timer = setTimeout(()=>controller.abort(),35000);
-  try {
-    const response = await fetch(`/api${path}`,{...options,signal:controller.signal,headers:{'Content-Type':'application/json',...(token ? {Authorization:`Bearer ${token}`} : {}),...options.headers}});
-    const data = await response.json();
-    if (!response.ok) {
-      const detail = typeof data.detail === 'string' ? data.detail : 'Check the selected asset and forecast horizon.';
-      if (response.status===401) { $('auth-panel').hidden=false; $('connection-label').textContent='Access token required'; }
-      throw new ApiError(detail,response.status);
-    }
-    return data;
-  } catch(error) {
-    if (error.name==='AbortError') throw new Error('The server took too long to respond. Please try again.');
-    if (error instanceof TypeError) throw new Error('Cannot reach the server. Check that the app is running, then try again.');
-    throw error;
-  } finally { clearTimeout(timer); }
-}
+let assets=[], models=[], modelKey=null, selected=null, market='stock', horizon=10, range=3, history=null, result=null, busy=false, retryAction=null;
+const inference = new BrowserInference();
 
 function setModelStatus(status) {
   $('connection-dot').classList.add('connected');
@@ -36,7 +20,7 @@ function setModelStatus(status) {
 }
 function updateModelHelp() {
   const model=models.find(item=>item.key===modelKey);
-  $('model-help').textContent=model ? `${model.description} Up to 256 candles · 3 averaged samples.` : 'Choose which Kronos model generates your forecast.';
+  $('model-help').textContent=model ? `${(model.bytes/1e6).toFixed(0)} MB download · 256 candles · 3 averaged samples.${model.key==='base'?' High memory use; desktop recommended.':''}` : 'Choose which Kronos model generates your forecast.';
 }
 function drawModels(defaultKey) {
   if(!models.some(model=>model.key===modelKey)) modelKey=defaultKey;
@@ -68,6 +52,8 @@ function drawAssets() {
   $('asset-list').replaceChildren();
   for (const asset of visible) {
     const button=document.createElement('button'); button.type='button'; button.className='asset-option';
+    button.disabled=asset.available===false;
+    if(asset.available===false)button.title='No published snapshot is available for this asset.';
     button.setAttribute('aria-pressed',String(asset.symbol===selected?.symbol));
     const icon=document.createElement('span'); icon.className='option-icon'; icon.textContent=asset.symbol.replace('-USD','').slice(0,1);
     const text=document.createElement('span'); text.className='option-text';
@@ -80,10 +66,12 @@ function drawAssets() {
   if (!visible.length) {const empty=document.createElement('p');empty.className='muted';empty.textContent='No matching assets. Try a name or symbol from the supported list.';$('asset-list').append(empty);}
 }
 function clearForecast() {
+  if (busy) inference.cancel();
   result=null; busy=false;
   $('forecast-results').hidden=true; $('forecast-summary').hidden=true; $('forecast-empty').hidden=false;
   $('job-status').classList.remove('active');
-  $('job-status').textContent='Each model downloads on first use. Later runs use cached weights.';
+  $('job-status').textContent='Models execute on this device. Verified downloads are cached when browser storage allows.';
+  $('cancel-button').hidden=true;
   chart.update(history,null,range); updateButton();
 }
 function showHistory() {
@@ -92,8 +80,10 @@ function showHistory() {
   const change=(candles.at(-1).close/candles.at(-2).close-1)*100;
   $('daily-change').textContent=`${percent(change)} last session`;
   $('daily-change').className=`daily-change ${change>=0?'positive':'negative'}`;
-  $('price-caption').textContent=`Last completed close · ${date(history.as_of)}`;
-  $('chart-note').textContent=`${history.asset.kind==='stock'?'Adjusted prices':'Daily candles'} · USD`;
+  const age=(Date.now()-Date.parse(history.fetched_at))/86400000;
+  const observationAge=(Date.now()-Date.parse(history.as_of))/86400000;
+  $('price-caption').textContent=`Last completed close · ${date(history.as_of)} · ${history.source==='Local JSON import'?'Local import':`Snapshot fetched ${new Date(history.fetched_at).toLocaleString()}`}${age>2 || observationAge>(history.asset.kind==='crypto'?2:5)?' · History may be out of date':''}`;
+  $('chart-note').textContent=`${history.asset.kind==='stock'&&history.adjusted?'Adjusted prices':'Daily candles'} · USD`;
   $('chart-message').hidden=true;chart.update(history,result,range);updateButton();
 }
 async function selectAsset(asset) {
@@ -103,9 +93,9 @@ async function selectAsset(asset) {
   $('asset-mark').textContent=asset.symbol.slice(0,1);$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
   $('last-price').textContent='—';$('daily-change').textContent='';$('price-caption').textContent='Loading completed daily candles…';
   $('horizon-help').textContent=asset.kind==='stock'?'Trading days · skips weekends & holidays':'Calendar days · crypto trades every day';
-  chartMessage('Loading daily price history',`Fetching completed candles for ${asset.symbol}.`,true);
-  try {const data=await api(`/history?symbol=${encodeURIComponent(asset.symbol)}`);state.commit(generation,()=>{history=data;showHistory();});}
-  catch(error) {state.commit(generation,()=>{chartMessage('Market data is unavailable','Use Try again to request fresh history.');$('price-caption').textContent='Daily history could not be loaded';showError('Unable to load market data',error,()=>selectAsset(selected));});}
+  chartMessage('Loading daily price history',`Loading the published snapshot for ${asset.symbol}.`,true);
+  try {const data=await staticJson(`data/history/${encodeURIComponent(asset.symbol)}.json`);state.commit(generation,()=>{history=data;showHistory();});}
+  catch(error) {state.commit(generation,()=>{chartMessage('Market snapshot is unavailable','Try another asset or import local history.');$('price-caption').textContent='Daily history could not be loaded';showError('Unable to load market data',error,()=>selectAsset(selected));});}
 }
 function showResult(data) {
   result=data;history=data.history;busy=false;showHistory();
@@ -127,40 +117,40 @@ function showResult(data) {
   $('job-status').classList.remove('active');
   setModelStatus({state:'ready',device:data.model.device,model:data.model.id});updateButton();
 }
-const stageLabels={queued:'Queued. Your forecast will start shortly.',fetching_data:'Preparing completed daily candles…',loading_model:'Loading Kronos. The first run downloads the model weights and may take a few minutes.',predicting:'Kronos is generating and averaging three possible paths…'};
 async function generate() {
   if (!history || !modelKey || busy) return;
   const requestedModel=models.find(model=>model.key===modelKey);
   const generation=state.begin();clearError();clearForecast();busy=true;updateButton();
   $('job-status').classList.add('active');$('job-status').textContent='Starting your forecast…';
+  $('cancel-button').hidden=false;
   try {
-    const job=await api('/forecasts',{method:'POST',body:JSON.stringify({symbol:selected.symbol,horizon,model:modelKey})});
-    const started=Date.now();
-    while(state.isCurrent(generation)) {
-      const status=await api(`/forecasts/${job.id}`);
-      if (!state.isCurrent(generation)) return;
-      if (status.state==='complete') {showResult(status.result);return;}
-      if (status.state==='failed') throw new Error(status.error);
-      $('job-status').textContent=status.stage==='loading_model' ? `Loading ${requestedModel.name}. Its first use downloads the weights and may take a few minutes.` : stageLabels[status.stage] || 'Generating your forecast…';
-      if(status.stage==='loading_model') $('connection-label').textContent='Loading model';
-      if(Date.now()-started>20*60*1000) throw new Error('This forecast is taking longer than expected. Check the server and try again.');
-      await new Promise(resolve=>setTimeout(resolve,1000));
-    }
-  } catch(error) {state.commit(generation,()=>{busy=false;updateButton();$('job-status').textContent='Your forecast did not finish.';$('job-status').classList.remove('active');showError('Unable to generate forecast',error,generate);});}
+    const snapshot=history;
+    const input=forecastInput(snapshot,horizon);
+    const data=await inference.predict(input,requestedModel,$('runtime-select').value,message=>state.commit(generation,()=>{$('job-status').textContent=message;}));
+    state.commit(generation,()=>{
+      const last=snapshot.candles.at(-1).close;
+      showResult({asset:snapshot.asset,history:snapshot,horizon,forecast:data.closes.map((close,i)=>({date:input.future_dates[i],close})),last_close:last,projected_close:data.closes.at(-1),change_pct:(data.closes.at(-1)/last-1)*100,
+        generated_at:new Date().toISOString(),elapsed_seconds:(data.loadMs+data.inferenceMs)/1000,
+        model:{...requestedModel,id:requestedModel.model_id,context:Math.min(256,snapshot.candles.length),samples:3,device:`browser ${data.provider}`}});
+      $('cancel-button').hidden=true;
+    });
+  } catch(error) {state.commit(generation,()=>{busy=false;updateButton();$('cancel-button').hidden=true;$('job-status').textContent='Your forecast did not finish.';$('job-status').classList.remove('active');showError('Unable to generate forecast',error,generate);});}
 }
 async function initialize() {
   clearError();
   try {
-    const health=await api('/health');setModelStatus(health.model);
-    const [data,modelData]=await Promise.all([api('/assets'),api('/models')]);assets=data.assets;models=modelData.models;
+    setModelStatus({state:'not_loaded'});
+    const [data,modelData]=await Promise.all([staticJson('data/assets.json'),staticJson('data/models.json')]);assets=data.assets;models=modelData.models;
     $('stock-count').textContent=assets.filter(asset=>asset.kind==='stock').length;
     $('crypto-count').textContent=assets.filter(asset=>asset.kind==='crypto').length;
-    drawModels(modelData.default);$('auth-panel').hidden=true;$('auth-error').textContent='';
-    await selectAsset(selected || assets.find(asset=>asset.symbol==='AAPL'));
+    drawModels(modelData.default);
+    const initial=selected || assets.find(asset=>asset.symbol==='AAPL' && asset.available) || assets.find(asset=>asset.available);
+    market=initial.kind;
+    for(const kind of ['stock','crypto']){$(`filter-${kind}`).disabled=!assets.some(asset=>asset.kind===kind);$(`filter-${kind}`).setAttribute('aria-pressed',String(kind===market));}
+    await selectAsset(initial);
   } catch(error) {
     $('connection-dot').classList.remove('connected');
-    if (error.status===401) {$('auth-error').textContent=token?'That token was not accepted. Try again.':'';chartMessage('Server access is protected','Enter the server token above to begin.');}
-    else {$('connection-label').textContent='Server unavailable';showError('Unable to connect',error,initialize);chartMessage('Waiting for the server','Check that the app is running, then try again.');}
+    $('connection-label').textContent='Site data unavailable';showError('Unable to load this deployment',error,initialize);chartMessage('Site data unavailable','Reload or rebuild the static deployment.');
   }
 }
 $('asset-search').addEventListener('input',drawAssets);
@@ -170,6 +160,19 @@ document.querySelectorAll('[data-range]').forEach(button=>button.addEventListene
 $('generate-button').addEventListener('click',generate);
 $('model-select').addEventListener('change',()=>{modelKey=$('model-select').value;state.begin();clearError();clearForecast();updateModelHelp();if(!history && selected)selectAsset(selected);});
 $('retry-button').addEventListener('click',()=>retryAction?.());
-$('auth-panel').addEventListener('submit',event=>{event.preventDefault();token=$('access-token').value;$('access-token').value='';initialize();});
+$('runtime-select').addEventListener('change',()=>{state.begin();inference.cancel();clearForecast();if(!history&&selected)selectAsset(selected);});
+$('cancel-button').addEventListener('click',()=>{state.begin();inference.cancel();clearForecast();$('job-status').textContent='Forecast cancelled.';});
+$('clear-cache').addEventListener('click',async()=>{state.begin();inference.cancel();clearForecast();if(!history&&selected)selectAsset(selected);try{await caches.delete(cacheName);$('job-status').textContent='Downloaded model cache cleared.';}catch{$('job-status').textContent='Browser storage is unavailable. Models run without a persistent cache.';}});
+$('import-history').addEventListener('change',async event=>{
+  const file=event.target.files[0];if(!file)return;
+  const generation=state.begin();clearForecast();clearError();
+  try {
+    if(file.size>2_000_000)throw new Error('Choose a JSON file smaller than 2 MB.');
+    const data=importedHistory(JSON.parse(await file.text()));
+    state.commit(generation,()=>{history=data;selected=data.asset;market=selected.kind;drawAssets();for(const kind of ['stock','crypto'])$(`filter-${kind}`).setAttribute('aria-pressed',String(kind===market));$('asset-name').textContent=data.asset.name+' · IMPORT';$('asset-exchange').textContent='Local JSON · USD';$('asset-mark').textContent='I';$('horizon-help').textContent='Uses future dates supplied in your JSON file';showHistory();});
+  }catch(error){state.commit(generation,()=>{if(!history&&selected)selectAsset(selected);showError('Unable to import history',error,null);});}
+  event.target.value='';
+});
+if(!navigator.gpu)$('runtime-select').querySelector('[value="webgpu"]').disabled=true;
 $('download-csv').addEventListener('click',()=>{if(!result)return;const url=URL.createObjectURL(new Blob([toCsv(result)],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`stock-predictor-${result.asset.symbol}-${result.model.key}-${result.history.as_of}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 initialize();

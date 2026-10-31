@@ -11,6 +11,11 @@ import torch
 from torch import nn
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILES = {
+    "mini": ("NeoQuasar/Kronos-mini", "f4e68697d9d5aed55cef5c96aabc3376bcad9f81", "NeoQuasar/Kronos-Tokenizer-2k", "26966d0035065a0cae0ebad7af8ece35bc1fb51c"),
+    "small": ("NeoQuasar/Kronos-small", "901c26c1332695a2a8f243eb2f37243a37bea320", "NeoQuasar/Kronos-Tokenizer-base", "0e0117387f39004a9016484a186a908917e22426"),
+    "base": ("NeoQuasar/Kronos-base", "2b554741eca47781b64468546e77fef3e85130e6", "NeoQuasar/Kronos-Tokenizer-base", "0e0117387f39004a9016484a186a908917e22426"),
+}
 sys.path.insert(0, str(ROOT / "vendor" / "kronos"))
 from model import Kronos, KronosTokenizer
 from model.module import RotaryPositionalEmbedding
@@ -97,12 +102,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "poc/browser/models")
     parser.add_argument("--symbol", help="Also prepare real market input (e.g. NVDA)")
+    parser.add_argument("--model", choices=PROFILES, default="mini")
     args = parser.parse_args()
     torch.set_num_threads(4)
     torch.manual_seed(42)
     cache = str(ROOT / ".cache/huggingface")
-    tokenizer = KronosTokenizer.from_pretrained("NeoQuasar/Kronos-Tokenizer-2k", cache_dir=cache).eval()
-    model = Kronos.from_pretrained("NeoQuasar/Kronos-mini", cache_dir=cache).eval()
+    model_id, revision, tokenizer_id, tokenizer_revision = PROFILES[args.model]
+    tokenizer = KronosTokenizer.from_pretrained(tokenizer_id, revision=tokenizer_revision, cache_dir=cache).eval()
+    model = Kronos.from_pretrained(model_id, revision=revision, cache_dir=cache).eval()
     # Check wrappers against unmodified upstream before replacing rotary modules.
     x = torch.randn(3, 32, 6).clamp(-5, 5)
     stamps = torch.tensor([0, 0, 1, 15, 6], dtype=torch.float32).repeat(3, 32, 1)
@@ -194,7 +201,8 @@ def main():
                    "future_dates": dates, "forced_tokens": forced, "reference_logits": reference_logits,
                    "expected_closes": decoded[-5:, 3].tolist()}
         (args.output / "fixture.json").write_text(json.dumps(fixture), encoding="utf-8")
-        (args.output / "manifest.json").write_text(json.dumps({"model": "NeoQuasar/Kronos-mini", "context": 256, "samples": 3,
+        (args.output / "manifest.json").write_text(json.dumps({"model": model_id, "revision": revision,
+            "tokenizer": tokenizer_id, "tokenizer_revision": tokenizer_revision, "context": 256, "samples": 3,
             "graphs": {n: f"{n}.onnx" for n in sessions}}), encoding="utf-8")
     if args.symbol:
         from app.market import MarketData, future_dates

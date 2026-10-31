@@ -12,7 +12,7 @@ From the repository root, using the existing Python 3.12 environment:
 cd poc/browser
 npm install --ignore-scripts
 cd ../..
-.\.venv\Scripts\python.exe scripts/serve_browser.py
+.\.venv\Scripts\python.exe scripts/serve_browser.py --directory poc/browser
 ```
 
 `pnpm install --ignore-scripts` can replace `npm install`; a pnpm lockfile is included. The normal project Python dependencies, including CPU PyTorch, must already be installed. The export reuses `.cache/huggingface`, downloading Mini and Tokenizer-2k if absent. `--symbol NVDA` is optional and uses the existing market provider and trading calendar to prepare five real future sessions.
@@ -49,4 +49,4 @@ The page accepts `{ "label": "NVDA", "candles": [...], "future_dates": [...] }`.
 
 WebGPU may assign shape/unsupported nodes to CPU. Selecting WebGPU does not mean every operation runs on GPU. Device memory, browser support, power consumption and latency need broader device testing; desktop measurements are not mobile guarantees. Small/Base require separate export and performance validation. Existing third-party/model/data terms still apply.
 
-The model files are fetched from upstream during export; retain the exported artifacts together when reproducing a result. The vendored architecture is pinned by the main repository, but this spike does not pin remote weight revisions.
+The model files are fetched from pinned upstream revisions in PROFILES in the export script. Retain exported artifacts and fixtures together when reproducing a result. Production development now uses the root static build and worker; this standalone page preserves the original Mini experiment.
