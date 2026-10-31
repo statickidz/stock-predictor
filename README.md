@@ -8,7 +8,7 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-60695D?style=flat-square" alt="MIT license"></a>
     <a href="https://github.com/shiyu-coder/Kronos"><img src="https://img.shields.io/badge/Powered_by-Kronos-B74629?style=flat-square" alt="Powered by Kronos"></a>
   </p>
-  <p><a href="#quick-start">Quick start</a> · <a href="#choose-your-model">Models</a> · <a href="docs/deployment.md">Deployment</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
+  <p><a href="#quick-start">Quick start</a> · <a href="#run-with-docker">Docker</a> · <a href="#choose-your-model">Models</a> · <a href="docs/deployment.md">Deployment</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
 ![Stock Predictor showing a stock forecast, observed prices and model controls](docs/images/forecast-desktop.jpg)
@@ -26,7 +26,42 @@ Stock Predictor is a small, self-hostable research app: pick an asset, choose a 
 
 ## Quick start
 
-Install **Python 3.12**, clone or download this repository, and open a terminal in its root folder.
+Clone or download this repository and open a terminal in its root folder. Choose Docker or a local Python installation.
+
+### Run with Docker
+
+Install Docker with Compose support and start the Docker engine. On Windows or macOS, Docker Desktop provides both; use Linux containers on Windows. Python and Node do not need to be installed on the host.
+
+Build the image and start the app in the background:
+
+```sh
+docker compose up --build -d
+```
+
+Open **[localhost:8000](http://127.0.0.1:8000)**. The first image build installs the CPU dependencies. When you generate a forecast, the selected model and tokenizer download on first use; allow a few minutes and keep internet access available for downloads and market history.
+
+Check the container status or follow its logs:
+
+```sh
+docker compose ps
+docker compose logs -f stock-predictor
+```
+
+Press `Ctrl+C` to leave the log view; the app keeps running. To stop and remove the container:
+
+```sh
+docker compose down
+```
+
+Start it again with `docker compose up -d`. After updating the source, rebuild with `docker compose up --build -d`.
+
+Downloaded models and market history persist in the `model-cache` named volume, mounted at `/data/cache`. `docker compose down` preserves this cache. Jobs are held in memory and disappear when the app restarts.
+
+If port 8000 is already in use, create or edit `.env` in the repository root, set `KRONOS_PORT=8001`, and rerun the startup command. Then open [localhost:8001](http://127.0.0.1:8001). Compose binds the published port to `127.0.0.1` by default. The included image runs on **CPU**; see the [deployment guide](docs/deployment.md) for remote access, authentication and GPU considerations.
+
+### Run with Python
+
+Install **Python 3.12**, then run the command for your platform from the repository root.
 
 **Windows · PowerShell**
 
@@ -103,13 +138,7 @@ KRONOS_PORT=8000
 
 The `KRONOS_*` names are retained for compatibility. Read the [configuration guide](docs/configuration.md) for GPU setup, cache paths, model overrides and the optional API token.
 
-For a CPU container with a persistent model cache:
-
-```sh
-docker compose up --build -d
-```
-
-Compose publishes to loopback by default. For remote access, use an SSH tunnel or a TLS reverse proxy and configure an access token. Keep one application worker: models and forecast jobs live in one process. See [deployment and runtime limits](docs/deployment.md).
+The [Docker quick start](#run-with-docker) packages the same application with CPU dependencies and a persistent model cache. For remote access, use an SSH tunnel or a TLS reverse proxy and configure an access token. Keep one application worker: models and forecast jobs live in one process. See [deployment and runtime limits](docs/deployment.md).
 
 **Market-data rights matter.** The default Yahoo Finance / yfinance integration is intended for personal research. Public or commercial hosting needs a provider with appropriate rights. The code license does not grant rights to redistribute market data or model weights. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
