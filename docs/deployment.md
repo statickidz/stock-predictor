@@ -6,7 +6,7 @@ Build with pnpm assets:prepare followed by pnpm build. The first command refresh
 
 Select GitHub Actions in Settings → Pages. The workflow separates prepared models, Node website build/browser verification, and Pages deployment.
 
-On the first run, manually dispatch GitHub Pages with prepare_models enabled. If prepared exports are missing, the model job installs the isolated Python dependencies and runs the three pinned exports. Successful exports are cached and passed as an artifact to the Node build job. Future runs restore them without Python. Missing/expired/invalid caches without explicit bootstrap fail with instructions; rerun with prepare_models enabled. If a corrupt cache has the same key, delete that Actions cache before bootstrapping again.
+The model job automatically prepares pinned exports when the prepared cache is missing or fails validation. It installs the isolated Python dependencies, exports all three models, and validates them before saving a fresh cache generation. Valid cached exports skip Python. The prepare_models input optionally forces a rebuild. Unique cache keys let recovery replace corrupt exports without manually deleting caches. Cold and recovery builds take longer; the job allows 90 minutes. Export or validation failures still stop deployment.
 
 Normal pushes to main and manual Pages runs use prepared exports. Scheduled market updates run separately and do not redeploy Pages. The website job installs Node dependencies, refreshes market snapshots with Node, packages assets, builds Astro and runs browser smoke before uploading dist. Model binaries are never committed to Git. The owner must push/merge and enable Pages; local commits do not deploy anything.
 

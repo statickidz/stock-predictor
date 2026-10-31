@@ -105,7 +105,7 @@ Each candle contains `date`, `open`, `high`, `low`, `close` and `volume`. The to
 
 The production output is `dist/`: HTML, CSS, JavaScript, runtime assets, verified model chunks and market snapshots. **No Python or Node process runs on the host.** GitHub Pages and ordinary HTTPS static hosts can serve it.
 
-For GitHub Pages, choose **GitHub Actions** in repository Settings → Pages. On the first run, enable **prepare_models** in the workflow if no prepared model cache exists. This opt-in maintenance job exports models separately; the website build and daily data refresh use Node. [Deployment instructions](docs/deployment.md) cover branch rules, custom domains and cache bootstrap.
+For GitHub Pages, choose **GitHub Actions** in repository Settings → Pages. Missing or invalid prepared models are rebuilt automatically; **prepare_models** optionally forces a rebuild. Model exports run separately; the website build and daily data refresh use Node. [Deployment instructions](docs/deployment.md) cover branch rules, custom domains and cache bootstrap.
 
 A full three-model artifact is around 673 MB. Models are split into 16 MiB chunks and remain outside the application JavaScript bundle. Optional Docker hosting serves a previously built `dist` with nginx.
 

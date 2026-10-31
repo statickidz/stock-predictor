@@ -20,4 +20,4 @@ PROFILES pins model and tokenizer revisions. Keep it in sync with data/models.js
 
 The unchanged Kronos architecture is vendored under vendor/kronos with its MIT license. Upstream source commit: 67b630e67f6a18c9e9be918d9b4337c960db1e9a. Weight sources and revisions are recorded in each manifest. Retain manifests, graphs and fixtures together. Browser smoke tests provide an additional compatibility check after preparation.
 
-For GitHub Pages' first deployment or after prepared caches expire, manually dispatch the Pages workflow with prepare_models enabled. Its separate model-preparation job installs these optional dependencies only when needed. Website builds, previews, frontend CI and daily snapshot refreshes use Node.
+GitHub Pages automatically prepares missing or invalid model exports and saves a fresh validated cache generation. The prepare_models dispatch input optionally forces a rebuild. Its separate model-preparation job installs these optional dependencies only when needed. Website builds, previews, frontend CI and daily snapshot refreshes use Node.
