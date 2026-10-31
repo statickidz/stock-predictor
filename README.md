@@ -7,12 +7,12 @@
     <a href="https://astro.build"><img src="https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white" alt="Astro 7"></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-417E38?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-60695D?style=flat-square" alt="MIT license"></a>
-    <a href="https://github.com/shiyu-coder/Kronos"><img src="https://img.shields.io/badge/Powered_by-Kronos-B74629?style=flat-square" alt="Powered by Kronos"></a>
+    <a href="https://github.com/shiyu-coder/Kronos"><img src="https://img.shields.io/badge/Powered_by-Kronos-0877D1?style=flat-square" alt="Powered by Kronos"></a>
   </p>
   <p><a href="#quick-start">Quick start</a> · <a href="#choose-your-model">Models</a> · <a href="#your-device-does-the-work">How it works</a> · <a href="docs/deployment.md">GitHub Pages</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
-![Stock Predictor with a browser-generated NVIDIA forecast](docs/images/forecast-desktop.jpg)
+![Night Studio in dark mode with a browser-generated NVIDIA forecast](docs/images/forecast-desktop.jpg)
 
 Stock Predictor is a small research workspace: pick an asset, choose a Kronos model and explore its projected daily closes. **Astro serves the interface. Your browser runs the model.** No inference server, account or paid AI API is required.
 
@@ -58,7 +58,7 @@ For layout work without model downloads, `pnpm build:ui` compiles the frontend a
 
 The site publishes dated market snapshots. Stocks and ETFs follow US trading sessions; crypto advances by UTC calendar days. Stock snapshots use adjusted prices. The observation and fetch dates are always shown: these are **daily observations, not live quotes**.
 
-![Stock Predictor exploring cryptocurrency in the browser](docs/images/forecast-crypto.jpg)
+![Night Studio in dark mode with a browser-generated Bitcoin forecast](docs/images/forecast-crypto.jpg)
 
 ### A focused market inventory
 

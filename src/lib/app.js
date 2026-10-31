@@ -71,7 +71,7 @@ function drawAssets() {
     if(asset.available===false)button.title='No price history is available. Choose another asset.';
     button.setAttribute('aria-pressed',String(asset.symbol===selected?.symbol));
     const icon=document.createElement('span'); icon.className='option-icon'; icon.setAttribute('aria-hidden','true');
-    icon.textContent=asset.symbol.replace('-USD','').slice(0,1);
+    icon.textContent=asset.symbol.replace('-USD','');
     const text=document.createElement('span'); text.className='option-text';
     const symbol=document.createElement('strong'); symbol.textContent=asset.symbol;
     const name=document.createElement('span'); name.textContent=asset.name; text.append(symbol,name);
@@ -98,7 +98,11 @@ function showHistory() {
   $('daily-change').className=`daily-change ${change>=0?'positive':'negative'}`;
   const age=(Date.now()-Date.parse(history.fetched_at))/86400000;
   const observationAge=(Date.now()-Date.parse(history.as_of))/86400000;
-  $('price-caption').textContent=`Last completed close · ${date(history.as_of)} · Snapshot fetched ${new Date(history.fetched_at).toLocaleString()}${age>2 || observationAge>(history.asset.kind==='crypto'?2:5)?' · History may be out of date':''}`;
+  const fetchedTime=document.createElement('time');
+  fetchedTime.dateTime=history.fetched_at;
+  fetchedTime.textContent=new Date(history.fetched_at).toLocaleString();
+  $('price-caption').replaceChildren(document.createTextNode(`Last completed close · ${date(history.as_of)} · Snapshot fetched `),fetchedTime,
+    document.createTextNode(age>2 || observationAge>(history.asset.kind==='crypto'?2:5)?' · History may be out of date':''));
   $('chart-note').textContent=`${history.asset.kind==='stock'&&history.adjusted?'Adjusted prices':'Daily candles'} · USD`;
   $('chart-message').hidden=true;chart.update(history,result,range);updateButton();
 }
@@ -106,7 +110,7 @@ async function selectAsset(asset) {
   const generation=state.begin();selected=asset;savePreferences();history=null;clearError();clearForecast();drawAssets();
   $('asset-name').replaceChildren(document.createTextNode(asset.name+' '));
   const symbol=document.createElement('span');symbol.id='asset-symbol';symbol.textContent=asset.symbol;$('asset-name').append(symbol);
-  $('asset-mark').textContent=asset.symbol;$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
+  $('asset-mark').textContent=asset.symbol.replace('-USD','');$('asset-exchange').textContent=`${asset.exchange} · ${asset.currency}`;
   $('last-price').textContent='—';$('daily-change').textContent='';$('price-caption').textContent='Loading completed daily candles…';
   $('horizon-help').textContent=asset.kind==='stock'?'Trading days only; skips weekends and holidays.':'Calendar days; includes weekends and holidays.';
   chartMessage('Loading daily price history',`Loading the published snapshot for ${asset.symbol}.`,true);
@@ -198,10 +202,10 @@ function updateRuntimeHelp() {
   gpu.disabled = !navigator.gpu;
   gpu.textContent = navigator.gpu ? 'WebGPU · GPU' : 'WebGPU · GPU (unavailable)';
   $('runtime-help').textContent = !navigator.gpu
-    ? 'This browser does not offer WebGPU. Use WebAssembly on your CPU.'
+    ? 'WebGPU is unavailable in this browser. Use WebAssembly · CPU.'
     : $('runtime-select').value === 'webgpu'
-      ? 'WebGPU uses your GPU. If this model fails to run, switch to WebAssembly · CPU.'
-      : 'WebAssembly uses your CPU. This browser also offers WebGPU; device support may vary.';
+      ? 'Uses WebGPU. If this model fails, switch to WebAssembly · CPU.'
+      : 'Runs on your CPU. WebGPU is also available; device support varies.';
 }
 $('download-csv').addEventListener('click',()=>{if(!result)return;const url=URL.createObjectURL(new Blob([toCsv(result)],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`stock-predictor-${result.asset.symbol}-${result.model.key}-${result.history.as_of}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 $('runtime-select').value=preferences.runtime==='webgpu' && navigator.gpu ? 'webgpu' : 'wasm';

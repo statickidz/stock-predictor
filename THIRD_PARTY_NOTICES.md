@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Inter
+
+The self-hosted Inter variable font is distributed under the SIL Open Font License 1.1. Its license is preserved at [public/fonts/Inter-LICENSE.txt](public/fonts/Inter-LICENSE.txt). Source: https://rsms.me/inter/ and https://github.com/rsms/inter.
+
 ## Kronos
 
 Source: https://github.com/shiyu-coder/Kronos

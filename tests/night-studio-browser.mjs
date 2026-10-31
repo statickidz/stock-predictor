@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
+
+const base = process.env.SMOKE_URL || 'http://127.0.0.1:4321/';
+const browser = await chromium.launch({headless:true, ...(process.env.BROWSER_CHANNEL ? {channel:process.env.BROWSER_CHANNEL} : {})});
+const captureDir = '.impeccable/review';
+await mkdir(captureDir,{recursive:true});
+try {
+  const page = await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
+  const errors=[];
+  const logoRequests=[];
+  page.on('request',request=>{if(request.url().includes('/asset-logos/'))logoRequests.push(request.url());});
+  page.on('pageerror',error=>errors.push(error.message));
+  const ready = () => page.waitForFunction(()=>!document.querySelector('#generate-button').disabled);
+  await page.goto(base);
+  await ready();
+  assert.equal(await page.locator('html').getAttribute('data-appearance'),'dark','Fresh visits should open in Night Studio');
+  await page.getByRole('button',{name:'Dark mode',exact:true}).click();
+  await page.reload();await ready();
+  assert.equal(await page.locator('html').getAttribute('data-appearance'),'light','Remember an explicit light appearance');
+  await page.screenshot({path:`${captureDir}/light.png`});
+  await page.getByRole('button',{name:'Dark mode',exact:true}).click();
+
+  await page.locator('#asset-search').fill('no-such-asset');
+  assert.match(await page.locator('#asset-list').innerText(),/No assets match/);
+  await page.locator('#asset-search').fill('NVDA');
+  await page.locator('.asset-option').click();await ready();
+  assert.equal(await page.locator('#asset-mark').innerText(),'NVDA');
+  assert.equal(await page.locator('.asset-mark img,.option-icon img').count(),0);
+  await page.locator('#asset-search').fill('');
+  await page.locator('[data-horizon="20"]').click();
+  await page.selectOption('#model-select','mini');
+  await page.selectOption('#runtime-select','wasm');
+  await page.screenshot({path:`${captureDir}/empty.png`});
+  await page.locator('#chart-wrap').focus();await page.keyboard.press('End');
+  assert.equal(await page.locator('#chart-tooltip').isVisible(),true);
+  await page.keyboard.press('Escape');
+  await page.locator('#generate-button').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#forecast-rows tr').length===20,{}, {timeout:180000});
+  assert.match(await page.locator('#forecast-provenance').innerText(),/browser wasm/);
+  const tableTop=await page.locator('#forecast-results').evaluate(node=>node.getBoundingClientRect().top);
+  assert.ok(tableTop<800,`Projections should begin in the desktop viewport, received y=${tableTop}`);
+  const download=page.waitForEvent('download');await page.locator('#download-csv').click();
+  assert.match((await download).suggestedFilename(),/NVDA-mini.*\.csv$/);
+  await page.locator('.analysis-workspace').evaluate(node=>node.scrollTop=0);
+  assert.ok(await page.locator('#runtime-select').evaluate(node=>node.getBoundingClientRect().bottom<=document.querySelector('.sidebar-scroll').getBoundingClientRect().bottom),'Processor selection should be visible at desktop size');
+  await page.screenshot({path:`${captureDir}/desktop.png`});
+
+  for(const viewport of [{width:1024,height:600},{width:768,height:1024},{width:390,height:844},{width:320,height:740}]) {
+    await page.setViewportSize(viewport);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`Page overflow at ${viewport.width}px`);
+    const button=await page.locator('#generate-button').boundingBox();
+    if(viewport.width>900)assert.ok(button.y+button.height<=viewport.height,'Generate must remain reachable without scrolling the desktop page');
+    if(viewport.width===390)await page.screenshot({path:`${captureDir}/mobile.png`,fullPage:true});
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await page.locator('#generate-button').click();await page.locator('#cancel-button').click();
+  assert.equal(await page.locator('#forecast-results').isVisible(),false);
+  const disclaimerTrigger=page.getByRole('button',{name:'For research only · Not financial advice',exact:true});
+  await disclaimerTrigger.click();await page.keyboard.press('Escape');
+  assert.equal(await disclaimerTrigger.evaluate(node=>node===document.activeElement),true,'Footer disclaimer should return focus to its opener');
+  await page.getByRole('button',{name:'Crypto',exact:false}).click();await ready();
+  assert.match(await page.locator('#horizon-help').innerText(),/Calendar days/);
+  await page.locator('#asset-search').fill('ETH-USD');await page.locator('.asset-option').click();await ready();
+  assert.match(await page.locator('#asset-name').innerText(),/Ethereum/);
+  assert.equal(await page.locator('#asset-mark').innerText(),'ETH');
+  assert.equal(await page.locator('.asset-mark img,.option-icon img').count(),0);
+  await page.screenshot({path:`${captureDir}/crypto.png`});
+  await page.getByRole('button',{name:'Help',exact:true}).click();
+  await page.getByRole('button',{name:'How it works',exact:false}).click();
+  assert.equal(await page.locator('#how-dialog').isVisible(),true);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('button',{name:'Help',exact:true}).evaluate(node=>node===document.activeElement),true);
+  await page.reload();await ready();
+  assert.equal(await page.locator('#asset-mark img').count(),0);
+  assert.equal(await page.locator('#asset-mark').innerText(),'ETH');
+  await page.evaluate(()=>localStorage.setItem('stock-predictor.theme','system'));
+  await page.emulateMedia({colorScheme:'light'});await page.reload();await ready();
+  assert.equal(await page.getByRole('button',{name:'Dark mode',exact:true}).getAttribute('aria-pressed'),'false');
+  await page.emulateMedia({colorScheme:'dark'});
+  await page.waitForFunction(()=>document.querySelector('.appearance-trigger').getAttribute('aria-pressed')==='true');
+  assert.deepEqual(errors,[]);
+  assert.deepEqual(logoRequests,[],'Ticker badges must never request logo images');
+  console.log('Night Studio: appearance persistence, real 20-day forecast, CSV, chart keyboard, responsive layouts, cancellation, crypto and dialogs passed.');
+} finally {await browser.close();}

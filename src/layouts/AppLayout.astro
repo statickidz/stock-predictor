@@ -1,21 +1,23 @@
 ---
 import globalStyles from '../styles/global.css?url';
 import darkStyles from '../styles/dark.css?url';
+import interFont from '../assets/InterVariable.woff2?url';
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#f8f7f4" media="all" />
-    <meta name="theme-color" content="#111214" media="not all" />
+    <meta name="theme-color" content="#f6f8fa" data-theme="light" media="not all" />
+    <meta name="theme-color" content="#0e161d" data-theme="dark" media="all" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Stock Predictor is a local-first workspace for stock, ETF and crypto price forecasts, powered by Kronos." />
     <meta name="inference-worker" content="" />
+    <link rel="preload" href={interFont} as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href={globalStyles} />
-    <link id="dark-styles" rel="stylesheet" href={darkStyles} media="not all" />
+    <link id="dark-styles" rel="stylesheet" href={darkStyles} media="all" />
     <script is:inline>
-      let theme = 'light';
+      let theme = 'dark';
       try {
         const saved = localStorage.getItem('stock-predictor.theme');
         if (['light', 'dark', 'system'].includes(saved)) theme = saved;
@@ -24,7 +26,7 @@ import darkStyles from '../styles/dark.css?url';
         document.getElementById('dark-styles').media = theme === 'dark' ? 'all' : theme === 'light' ? 'not all' : '(prefers-color-scheme: dark)';
         document.documentElement.dataset.appearance = theme;
         for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-          meta.media = theme === 'system' ? (meta.content === '#111214' ? '(prefers-color-scheme: dark)' : '(prefers-color-scheme: light)') : (((theme === 'dark') === (meta.content === '#111214')) ? 'all' : 'not all');
+          meta.media = theme === 'system' ? `(prefers-color-scheme: ${meta.dataset.theme})` : (theme === meta.dataset.theme ? 'all' : 'not all');
         }
       }
     </script>
