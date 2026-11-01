@@ -10,33 +10,52 @@ export class BrowserInference {
   cancel() {
     this.worker?.terminate();
     this.worker = null;
-    this.pending?.reject(new DOMException('Forecast cancelled.', 'AbortError'));
+    const pending = this.pending;
     this.pending = null;
+    pending?.reject(new DOMException('Forecast cancelled.', 'AbortError'));
   }
 
   predict(input, model, provider, onStatus) {
-    if (this.pending) this.cancel();
-    if (!this.worker) {
-      this.worker = new Worker(workerUrl, {type:'module'});
-      this.worker.onmessage = ({data}) => {
-        const pending = this.pending;
-        if (!pending || data.requestId !== pending.id) return;
-        if (data.type === 'status') return pending.onStatus(data.message);
-        this.pending = null;
-        if (data.type === 'error') pending.reject(new Error(data.message));
-        else pending.resolve(data);
-      };
-      this.worker.onerror = () => {
-        const pending = this.pending;
-        this.pending = null;
-        this.worker.terminate(); this.worker = null;
-        pending?.reject(new Error('Browser inference stopped. Try Mini with WebAssembly, or free device memory and retry.'));
-      };
-    }
-    return new Promise((resolve,reject) => {
+    this.cancel();
+    return new Promise((resolve, reject) => {
       const id = ++this.counter;
-      this.pending = {id,resolve,reject,onStatus};
-      this.worker.postMessage({requestId:id,input,model,provider});
+      const pending = {id, resolve, reject, onStatus};
+      this.pending = pending;
+      const start = selected => {
+        let worker;
+        const fail = error => {
+          if (this.pending !== pending || (worker && this.worker !== worker)) return;
+          worker?.terminate();
+          this.worker = null;
+          if (selected === 'webgpu') {
+            onStatus('GPU forecast failed. Retrying with WebAssembly · CPU…');
+            start('wasm');
+          } else {
+            this.pending = null;
+            reject(error);
+          }
+        };
+        try {
+          worker = new Worker(workerUrl, {type:'module'});
+          this.worker = worker;
+          worker.onmessage = ({data}) => {
+            if (this.pending !== pending || this.worker !== worker || data.requestId !== id) return;
+            if (data.type === 'status') return onStatus(data.message);
+            if (data.type === 'error') return fail(new Error(data.message));
+            if (data.type !== 'result') return;
+            // Drop the runtime heap, sessions and GPU buffers between runs. Downloads
+            // remain in Cache Storage, but dynamic horizon allocations must not accumulate.
+            worker.terminate();
+            this.worker = null;
+            this.pending = null;
+            resolve(data);
+          };
+          worker.onerror = () => fail(new Error('Browser inference stopped. Try Mini with WebAssembly, or free device memory and retry.'));
+          worker.onmessageerror = () => fail(new Error('Browser inference returned an unreadable response.'));
+          worker.postMessage({requestId:id,input,model,provider:selected});
+        } catch (error) { fail(error); }
+      };
+      start(provider);
     });
   }
 }

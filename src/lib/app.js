@@ -204,7 +204,7 @@ function updateRuntimeHelp() {
   $('runtime-help').textContent = !navigator.gpu
     ? 'WebGPU is unavailable in this browser. Use WebAssembly · CPU.'
     : $('runtime-select').value === 'webgpu'
-      ? 'Uses WebGPU. If this model fails, switch to WebAssembly · CPU.'
+      ? 'Uses WebGPU. If GPU inference fails, the forecast retries on WebAssembly · CPU.'
       : 'Runs on your CPU. WebGPU is also available; device support varies.';
 }
 $('download-csv').addEventListener('click',()=>{if(!result)return;const url=URL.createObjectURL(new Blob([toCsv(result)],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=`stock-predictor-${result.asset.symbol}-${result.model.key}-${result.history.as_of}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
