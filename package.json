@@ -14,11 +14,13 @@
     "dev": "node scripts/astro.mjs dev --host 127.0.0.1",
     "build": "node scripts/prepare-assets.mjs --offline-data && node scripts/astro.mjs build && node scripts/check-dist.mjs",
     "build:ui": "node scripts/astro.mjs build",
+    "seo:image": "node scripts/generate-social-image.mjs",
     "assets:prepare": "node scripts/prepare-assets.mjs",
     "assets:offline": "node scripts/prepare-assets.mjs --offline-data",
     "models:check": "node scripts/check-models.mjs",
     "preview": "node scripts/astro.mjs preview --host 127.0.0.1",
     "test:browser": "node tests/browser-smoke.mjs",
+    "test:seo": "node tests/seo-browser.mjs",
     "test:design": "node tests/night-studio-browser.mjs"
   }
 }

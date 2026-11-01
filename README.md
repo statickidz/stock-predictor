@@ -23,6 +23,7 @@ Stock Predictor is a small research workspace: pick an asset, choose a Kronos mo
 - **Your device, your forecast.** Run on CPU through WebAssembly or a supported GPU through WebGPU.
 - **A readable path ahead.** Historical prices stay solid; forecasts are dashed. Source dates and model provenance stay visible.
 - **Useful exports.** Inspect daily projections and save CSV results.
+- **Ready to share.** Search metadata, canonical links, a sitemap and a branded image for shared links are built into the static site. See [SEO configuration](docs/configuration.md#search-and-link-previews).
 - **Honest failure states.** No invented prices or simulated-inference fallback. Cancel a forecast at any time.
 
 ## Quick start

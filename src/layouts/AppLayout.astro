@@ -2,6 +2,42 @@
 import globalStyles from '../styles/global.css?url';
 import darkStyles from '../styles/dark.css?url';
 import interFont from '../assets/InterVariable.woff2?url';
+import {SEO, getSeoUrls} from '../lib/seo.js';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {title = SEO.title, description = SEO.description} = Astro.props;
+const urls = getSeoUrls(Astro.site, import.meta.env.BASE_URL);
+const structuredData = urls.canonical ? {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${urls.canonical}#website`,
+      name: SEO.name,
+      url: urls.canonical,
+      description,
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'WebApplication',
+      '@id': `${urls.canonical}#application`,
+      name: SEO.name,
+      url: urls.canonical,
+      description,
+      image: urls.image,
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Any',
+      browserRequirements: 'Requires JavaScript and WebAssembly.',
+      isAccessibleForFree: true,
+      offers: {'@type': 'Offer', price: '0', priceCurrency: 'USD'},
+      isPartOf: {'@id': `${urls.canonical}#website`},
+    },
+  ],
+} : undefined;
 ---
 <!doctype html>
 <html lang="en">
@@ -11,7 +47,28 @@ import interFont from '../assets/InterVariable.woff2?url';
     <meta name="theme-color" content="#f6f8fa" data-theme="light" media="not all" />
     <meta name="theme-color" content="#0e161d" data-theme="dark" media="all" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Stock Predictor is a local-first workspace for stock, ETF and crypto price forecasts, powered by Kronos." />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    {urls.canonical && <link rel="canonical" href={urls.canonical} />}
+    {urls.sitemap && <link rel="sitemap" type="application/xml" href={urls.sitemap} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SEO.name} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {urls.canonical && <meta property="og:url" content={urls.canonical} />}
+    <meta property="og:image" content={urls.image} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content={String(SEO.imageWidth)} />
+    <meta property="og:image:height" content={String(SEO.imageHeight)} />
+    <meta property="og:image:alt" content={SEO.imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={urls.image} />
+    <meta name="twitter:image:alt" content={SEO.imageAlt} />
+    {structuredData && <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData).replace(/</g, '\\u003c')} />}
     <meta name="inference-worker" content="" />
     <link rel="preload" href={interFont} as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href={globalStyles} />
@@ -30,7 +87,6 @@ import interFont from '../assets/InterVariable.woff2?url';
         }
       }
     </script>
-    <title>Stock Predictor — Market forecasts</title>
     <link rel="icon" type="image/svg+xml" href={import.meta.env.BASE_URL + 'favicon.svg'} />
   </head>
   <body><slot /></body>
