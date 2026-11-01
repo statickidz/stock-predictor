@@ -1,8 +1,8 @@
 <div align="center">
   <img src="docs/assets/stock-predictor.svg" alt="Stock Predictor logo" width="76" height="76">
   <h1>Stock Predictor</h1>
-  <p><strong>A little more perspective on the markets.</strong></p>
-  <p>Explore stocks, ETFs and crypto with real market history<br>and forecasts powered by <a href="https://github.com/shiyu-coder/Kronos">Kronos</a>, right in your browser.</p>
+  <p><strong>AI stock prediction. Run on your device.</strong></p>
+  <p>Explore AI-powered stock, ETF and crypto forecasts<br>with real market history and <a href="https://github.com/shiyu-coder/Kronos">Kronos</a>, right in your browser.</p>
   <p>
     <a href="https://astro.build"><img src="https://img.shields.io/badge/Astro-7-BC52EE?style=flat-square&logo=astro&logoColor=white" alt="Astro 7"></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-417E38?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24"></a>
@@ -14,12 +14,12 @@
 
 ![Night Studio in dark mode with a browser-generated NVIDIA forecast](docs/images/forecast-desktop.jpg)
 
-Stock Predictor is a small research workspace: pick an asset, choose a Kronos model and explore its projected daily closes. **Astro serves the interface. Your browser runs the model.** No inference server, account or paid AI API is required.
+Stock Predictor is an **AI stock prediction and market research workspace** for stocks, ETFs and crypto. Pick an asset, choose a Kronos AI model and explore its projected daily closes and volume using real daily market snapshots. **Astro serves the interface. Your browser runs the model.** No inference server, account or paid AI API is required. Forecasts are estimates for research, not financial advice.
 
 ## Made for exploring
 
 - **130 curated assets.** Search 80 US-listed stocks, 20 ETFs and 30 USD crypto pairs.
-- **Three real models.** Choose Kronos Mini, Small or Base, with the matching tokenizer.
+- **AI forecasts powered by Kronos.** Choose Mini, Small or Base, with the matching tokenizer, for 5, 10 or 20-day projections.
 - **Your device, your forecast.** Run on CPU through WebAssembly or a supported GPU through WebGPU.
 - **A readable path ahead.** Historical prices stay solid; forecasts are dashed. Source dates and model provenance stay visible.
 - **Useful exports.** Inspect daily projections and save CSV results.
